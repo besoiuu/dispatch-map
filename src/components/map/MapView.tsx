@@ -130,15 +130,17 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
 
       if (features.length > 0) {
         map.getCanvas().style.cursor = 'pointer';
+        const layerId = features[0].layer?.id || '';
+        const country = layerId.split('-').pop() || '';
         const key =
           zoom >= config.overviewZoomThreshold
             ? config.detailPropertyKey
             : config.overviewPropertyKey;
         const featureName = String(features[0].properties?.name ?? features[0].properties?.label ?? '');
-        setHoveredFeatureId(String(features[0].properties?.[key] ?? ''), featureName);
+        setHoveredFeatureId(String(features[0].properties?.[key] ?? ''), featureName, country.toUpperCase());
       } else {
         map.getCanvas().style.cursor = '';
-        setHoveredFeatureId(null, null);
+        setHoveredFeatureId(null, null, null);
       }
     },
     [config, setHoveredFeatureId]

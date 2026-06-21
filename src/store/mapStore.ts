@@ -11,6 +11,7 @@ interface MapState {
   hiddenCountries: Set<CountryCode>;
   hoveredFeatureId: string | null;
   hoveredFeatureName: string | null;
+  hoveredCountry: string | null;
   highlightedPlz: string | null;
   loading: boolean;
 
@@ -20,7 +21,7 @@ interface MapState {
   setOverviewData: (country: CountryCode, data: FeatureCollection) => void;
   toggleCountry: (code: CountryCode) => void;
   isCountryVisible: (code: CountryCode) => boolean;
-  setHoveredFeatureId: (id: string | null, name?: string | null) => void;
+  setHoveredFeatureId: (id: string | null, name?: string | null, country?: string | null) => void;
   setHighlightedPlz: (plz: string | null) => void;
   setLoading: (loading: boolean) => void;
 }
@@ -33,6 +34,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   hiddenCountries: new Set<CountryCode>(),
   hoveredFeatureId: null,
   hoveredFeatureName: null,
+  hoveredCountry: null,
   highlightedPlz: null,
   loading: true,
 
@@ -48,7 +50,7 @@ export const useMapStore = create<MapState>((set, get) => ({
     return { hiddenCountries: next };
   }),
   isCountryVisible: (code) => !get().hiddenCountries.has(code),
-  setHoveredFeatureId: (hoveredFeatureId, hoveredFeatureName = null) => set({ hoveredFeatureId, hoveredFeatureName }),
+  setHoveredFeatureId: (hoveredFeatureId, hoveredFeatureName = null, hoveredCountry = null) => set({ hoveredFeatureId, hoveredFeatureName, hoveredCountry }),
   setHighlightedPlz: (highlightedPlz) => set({ highlightedPlz }),
   setLoading: (loading) => set({ loading }),
 }));
