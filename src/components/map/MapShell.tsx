@@ -10,6 +10,7 @@ import { MapView } from './MapView';
 import { ZoomPills } from './ZoomPills';
 import { Sidebar } from '../sidebar/Sidebar';
 import { ToastContainer } from '../ui/Toast';
+import { MobileHint } from '../ui/MobileHint';
 import { enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
 
@@ -23,6 +24,7 @@ export function MapShell() {
     setColorBlindMode(colorBlind);
   }, [colorBlind]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const touchStartY = useRef(0);
   const handleSwipeStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -114,6 +116,7 @@ export function MapShell() {
             Loading map data...
           </div>
         )}
+        <MobileHint />
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="cursor-pointer absolute bottom-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-200 md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
@@ -127,14 +130,27 @@ export function MapShell() {
           </svg>
         </button>
       </div>
+      {/* Desktop collapse toggle */}
+      <button
+        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+        className="cursor-pointer hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-30 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-all shadow-sm"
+        style={{ right: sidebarCollapsed ? 0 : 'var(--sidebar-width)' }}
+        title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+        aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+      >
+        <svg className={`h-3 w-3 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
       <div
         className={`
-          md:relative md:h-full md:w-(--sidebar-width) md:block
-          fixed inset-x-0 bottom-0 z-30 transition-transform duration-300 md:transition-none
+          md:relative md:h-full md:block overflow-hidden
+          fixed inset-x-0 bottom-0 z-30 transition-all duration-300 md:transition-all
           ${mobileOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
+          ${sidebarCollapsed ? 'md:w-0' : 'md:w-(--sidebar-width)'}
         `}
       >
-        <div className="h-[60vh] md:h-full">
+        <div className="h-[60vh] md:h-full" style={{ width: 'var(--sidebar-width)' }}>
           <div
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}

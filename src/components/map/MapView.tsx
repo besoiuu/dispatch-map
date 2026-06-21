@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
 import Map, {
   NavigationControl,
   type MapRef,
@@ -16,6 +16,7 @@ import { useThemeStore } from '@/store/themeStore';
 import { loadDetailForCountries, getVisibleCountries } from '@/hooks/useMapData';
 import { PlzLayers } from './PlzLayers';
 import { MapTooltip } from './MapTooltip';
+import { ContextMenu, type ContextMenuState } from './ContextMenu';
 
 interface MapViewProps {
   detailDataMap: Partial<Record<CountryCode, FeatureCollection>>;
@@ -36,9 +37,11 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
 
   const dark = useThemeStore((s) => s.dark);
   const config = countries[activeCountry];
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const handleClick = useCallback(
     (e: MapLayerMouseEvent) => {
+      setContextMenu(null);
       const map = mapRef.current?.getMap();
       if (!map) return;
 
@@ -80,12 +83,30 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
 
   const handleContextMenu = useCallback(
     (e: MapLayerMouseEvent) => {
-      if (!activeRouteId) return;
       e.preventDefault();
+      const map = mapRef.current?.getMap();
       const { lng, lat } = e.lngLat;
-      addWaypoint(activeRouteId, [lng, lat]);
+
+      let plz: string | undefined;
+      let plzName: string | undefined;
+      let country: string | undefined;
+
+      if (map) {
+        const plz5Layers = enabledCountries.map((c) => `plz5-fill-${c}`).filter((l) => map.getLayer(l));
+        if (plz5Layers.length > 0) {
+          const features = map.queryRenderedFeatures(e.point, { layers: plz5Layers });
+          if (features.length > 0) {
+            const layerId = features[0].layer?.id || '';
+            country = layerId.replace('plz5-fill-', '').toUpperCase();
+            plz = String(features[0].properties?.plz5 ?? '');
+            plzName = String(features[0].properties?.name ?? '');
+          }
+        }
+      }
+
+      setContextMenu({ x: e.point.x, y: e.point.y, lngLat: { lng, lat }, plz, plzName, country });
     },
-    [activeRouteId, addWaypoint]
+    []
   );
 
   // Long-press for mobile waypoint adding
@@ -152,6 +173,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
   }, [setHoveredFeatureId]);
 
   const handleMoveEnd = useCallback(() => {
+    setContextMenu(null);
     const map = mapRef.current?.getMap();
     if (!map) return;
 
@@ -253,6 +275,9 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
         highlightedPlz={highlightedPlz}
       />
       <MapTooltip />
+      {contextMenu && (
+        <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />
+      )}
     </Map>
   );
 }
