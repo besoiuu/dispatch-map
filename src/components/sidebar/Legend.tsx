@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useMapStore } from '@/store/mapStore';
 import { countries, enabledCountries } from '@/config/countries';
-import { getRegionColor } from '@/lib/colors';
+import { getRegionColor, setCountryHueContext } from '@/lib/colors';
 import type { CountryCode } from '@/types/country';
 
 const FLAGS: Record<CountryCode, string> = {
@@ -96,7 +96,7 @@ export function Legend() {
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-sm shrink-0"
-                      style={{ backgroundColor: getRegionColor(region.code) }}
+                      style={{ backgroundColor: (setCountryHueContext(code), getRegionColor(region.code)) }}
                     />
                     <span className="font-medium text-gray-700 dark:text-gray-300">{region.code}</span>
                     {region.label && (
