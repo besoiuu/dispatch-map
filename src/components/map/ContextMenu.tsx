@@ -45,8 +45,11 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
 
   const handleAddWaypoint = () => {
     if (!activeRouteId) return;
-    addWaypoint(activeRouteId, [state.lngLat.lng, state.lngLat.lat]);
-    addToast(`Waypoint added to ${activeRoute?.name ?? 'route'}`);
+    const label = state.plz && state.plzName
+      ? `${state.plz} ${state.plzName}`
+      : state.plz || 'Waypoint';
+    addWaypoint(activeRouteId, [state.lngLat.lng, state.lngLat.lat], undefined, label);
+    addToast(`${label} added to ${activeRoute?.name ?? 'route'}`);
     onClose();
   };
 
