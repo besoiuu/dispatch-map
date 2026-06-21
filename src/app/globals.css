@@ -16,6 +16,7 @@
 body {
   margin: 0;
   padding: 0;
+  padding-top: env(safe-area-inset-top);
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
 }
@@ -37,6 +38,10 @@ body {
 .dark .skeleton {
   background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
   background-size: 200% 100%;
+}
+
+.maplibregl-ctrl-top-left {
+  top: env(safe-area-inset-top) !important;
 }
 
 .maplibregl-popup-content {

@@ -30,7 +30,7 @@ export function ZoomPills() {
   };
 
   return (
-    <div className="absolute top-4 left-1/2 z-10 -translate-x-1/2">
+    <div className="absolute top-2 left-1/2 z-10 -translate-x-1/2" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="flex rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
         {LEVELS.map((level, i) => (
           <button
