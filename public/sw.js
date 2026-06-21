@@ -35,3 +35,4 @@ self.addEventListener('fetch', (e) => {
   // Everything else: network-first
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
+// deploy trigger 1782060879
