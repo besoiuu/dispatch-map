@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: process.env.NODE_ENV === 'production'
-              ? 'public, max-age=31536000, immutable'
+              ? 'public, max-age=3600, stale-while-revalidate=86400'
               : 'no-cache, no-store, must-revalidate',
           },
         ],

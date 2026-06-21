@@ -16,18 +16,17 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // Cache GeoJSON data files (cache-first, they rarely change)
+  // GeoJSON: use version query param as cache key, network-first to pick up updates
   if (url.pathname.startsWith('/data/') && url.pathname.endsWith('.geojson')) {
     e.respondWith(
-      caches.open(CACHE).then((cache) =>
-        cache.match(e.request).then((cached) => {
-          if (cached) return cached;
-          return fetch(e.request).then((res) => {
-            if (res.ok) cache.put(e.request, res.clone());
-            return res;
-          });
+      fetch(e.request)
+        .then((res) => {
+          if (res.ok) {
+            caches.open(CACHE).then((cache) => cache.put(e.request, res.clone()));
+          }
+          return res;
         })
-      )
+        .catch(() => caches.match(e.request))
     );
     return;
   }

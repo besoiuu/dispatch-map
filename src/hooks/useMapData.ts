@@ -6,6 +6,8 @@ import { countries, enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
 import type { FeatureCollection } from 'geojson';
 
+const DATA_VERSION = 3;
+
 export function useMapData() {
   const detailDataMap = useMapStore((s) => s.detailData);
   const overviewDataMap = useMapStore((s) => s.overviewData);
@@ -30,8 +32,8 @@ export function useMapData() {
       toLoad.map(async (code) => {
         const config = countries[code];
         const [overview, detail] = await Promise.all([
-          fetch(config.overviewPath, { signal: controller.signal }).then((r) => r.json()),
-          fetch(config.detailPath, { signal: controller.signal }).then((r) => r.json()),
+          fetch(`${config.overviewPath}?v=${DATA_VERSION}`, { signal: controller.signal }).then((r) => r.json()),
+          fetch(`${config.detailPath}?v=${DATA_VERSION}`, { signal: controller.signal }).then((r) => r.json()),
         ]);
         setOverviewData(code, overview);
         setDetailData(code, detail);
