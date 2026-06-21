@@ -7,20 +7,12 @@ import { useRouteStore } from '@/store/routeStore';
 import { routeToCSV, downloadCSV, copyRouteAsText } from '@/lib/export';
 import { calculateRoute, formatDistance, formatDuration, buildGoogleMapsUrl } from '@/lib/routing';
 
-function guessCountry(coord: [number, number]): string {
-  const [lng, lat] = coord;
-  if (lat > 54.5 && lng > 8 && lng < 15.5) return 'DK';
-  if (lat > 51 && lat < 54 && lng > 3.3 && lng < 7.2) return 'NL';
-  if (lat > 49.5 && lat < 51.5 && lng > 2.5 && lng < 6.4) return 'BE';
-  if (lat > 42 && lat < 51.1 && lng > -5 && lng < 8.2) return 'FR';
-  if (lat > 46.3 && lat < 49 && lng > 9.5 && lng < 17.2) return 'AT';
-  if (lat > 48.5 && lat < 51.1 && lng > 12 && lng < 19) return 'CZ';
-  if (lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1) return 'DE';
-  if (lat > 49 && lat < 55 && lng > 14 && lng < 24.2) return 'PL';
-  if (lat > 45.7 && lat < 48.6 && lng > 16 && lng < 22.9) return 'HU';
-  if (lat > 43.6 && lat < 48.3 && lng > 20.2 && lng < 29.7) return 'RO';
-  if (lat > 36 && lat < 47.1 && lng > 6.6 && lng < 18.5) return 'IT';
-  return '';
+function parsePlz(prefixedPlz: string): { country: string; code: string } {
+  if (prefixedPlz.includes(':')) {
+    const [cc, code] = prefixedPlz.split(':', 2);
+    return { country: cc.toUpperCase(), code };
+  }
+  return { country: '', code: prefixedPlz };
 }
 
 interface RoutePanelProps {
@@ -30,12 +22,18 @@ interface RoutePanelProps {
   detailData: FeatureCollection | null;
 }
 
-function getPlzCentroid(
-  plz: string,
+function findPlzFeature(
+  prefixedPlz: string,
   data: FeatureCollection | null
-): [number, number] | null {
+): { coord: [number, number]; name: string } | null {
   if (!data) return null;
-  const feature = data.features.find((f) => f.properties?.plz5 === plz);
+  const { country, code } = parsePlz(prefixedPlz);
+  const cc = country.toLowerCase();
+  const feature = data.features.find((f) => {
+    if (f.properties?.plz5 !== code) return false;
+    if (cc && f.properties?._country && f.properties._country !== cc) return false;
+    return true;
+  });
   if (!feature || !('coordinates' in feature.geometry)) return null;
   let sumLng = 0, sumLat = 0, count = 0;
   const walk = (coords: unknown[]) => {
@@ -49,7 +47,10 @@ function getPlzCentroid(
   };
   walk(feature.geometry.coordinates as unknown[]);
   if (count === 0) return null;
-  return [sumLng / count, sumLat / count];
+  return {
+    coord: [sumLng / count, sumLat / count],
+    name: String(feature.properties?.name ?? ''),
+  };
 }
 
 function buildStopsFromPlz(
@@ -65,14 +66,15 @@ function buildStopsFromPlz(
     if (existing) {
       stops.push(existing);
     } else {
-      const coord = getPlzCentroid(plz, data);
-      if (coord) {
+      const result = findPlzFeature(plz, data);
+      if (result) {
+        const { code } = parsePlz(plz);
         stops.push({
           id: crypto.randomUUID(),
           type: 'plz',
           plz,
-          label: plz,
-          coordinate: coord,
+          label: result.name ? `${code} ${result.name}` : code,
+          coordinate: result.coord,
         });
       }
     }
@@ -250,11 +252,11 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
                 </div>
 
                 <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                    {stop.plz ?? stop.label}
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                    {stop.label || parsePlz(stop.plz ?? '').code}
                   </span>
-                  {stop.type === 'plz' && (
-                    <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1">{guessCountry(stop.coordinate)}</span>
+                  {stop.type === 'plz' && stop.plz && (
+                    <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1 shrink-0">{parsePlz(stop.plz).country}</span>
                   )}
                 </div>
 

@@ -41,42 +41,40 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      const zoom = map.getZoom();
-
-      if (zoom < config.overviewZoomThreshold) {
-        const plz2Layers = enabledCountries.map((c) => `plz2-fill-${c}`).filter((l) => map.getLayer(l));
-        if (plz2Layers.length === 0) return;
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: plz2Layers,
-        });
+      // Try detail layers first (PLZ selection)
+      const plz5Layers = enabledCountries.map((c) => `plz5-fill-${c}`).filter((l) => map.getLayer(l));
+      if (plz5Layers.length > 0) {
+        const features = map.queryRenderedFeatures(e.point, { layers: plz5Layers });
         if (features.length > 0) {
-          const props = features[0].properties;
-          if (props?.bbox) {
-            const bbox = JSON.parse(props.bbox);
-            map.fitBounds(bbox, { padding: 40, maxZoom: 10 });
+          const layerId = features[0].layer?.id || '';
+          const country = layerId.replace('plz5-fill-', '');
+          const rawPlz = String(features[0].properties?.plz5 ?? '');
+          if (!rawPlz) return;
+
+          const plz = `${country}:${rawPlz}`;
+          const existingRoute = getRouteForPlz(plz);
+          if (existingRoute) {
+            removePlzFromRoute(existingRoute.id, plz);
+          } else if (activeRouteId) {
+            addPlzToActiveRoute(plz);
           }
+          return;
         }
-        return;
       }
 
-      const plz5Layers = enabledCountries.map((c) => `plz5-fill-${c}`).filter((l) => map.getLayer(l));
-      if (plz5Layers.length === 0) return;
-      const features = map.queryRenderedFeatures(e.point, {
-        layers: plz5Layers,
-      });
-      if (features.length === 0) return;
-
-      const plz = String(features[0].properties?.[config.detailPropertyKey] ?? '');
-      if (!plz) return;
-
-      const existingRoute = getRouteForPlz(plz);
-      if (existingRoute) {
-        removePlzFromRoute(existingRoute.id, plz);
-      } else if (activeRouteId) {
-        addPlzToActiveRoute(plz);
+      // Fall back to overview layers (zoom to region)
+      const plz2Layers = enabledCountries.map((c) => `plz2-fill-${c}`).filter((l) => map.getLayer(l));
+      if (plz2Layers.length === 0) return;
+      const features = map.queryRenderedFeatures(e.point, { layers: plz2Layers });
+      if (features.length > 0) {
+        const props = features[0].properties;
+        if (props?.bbox) {
+          const bbox = JSON.parse(props.bbox);
+          map.fitBounds(bbox, { padding: 40, maxZoom: 10 });
+        }
       }
     },
-    [config, activeRouteId, addPlzToActiveRoute, getRouteForPlz, removePlzFromRoute]
+    [activeRouteId, addPlzToActiveRoute, getRouteForPlz, removePlzFromRoute]
   );
 
   const handleContextMenu = useCallback(

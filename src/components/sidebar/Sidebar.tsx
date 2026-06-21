@@ -47,7 +47,12 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
   const hiddenCountries = useMapStore((s) => s.hiddenCountries);
   const detailData = useMemo(() => {
     const visibleCountries = enabledCountries.filter((c) => !hiddenCountries.has(c));
-    const allFeatures = visibleCountries.flatMap((c) => detailDataMap[c]?.features ?? []);
+    const allFeatures = visibleCountries.flatMap((c) =>
+      (detailDataMap[c]?.features ?? []).map(f => ({
+        ...f,
+        properties: { ...f.properties, _country: c },
+      }))
+    );
     if (allFeatures.length === 0) return null;
     return { type: 'FeatureCollection' as const, features: allFeatures };
   }, [detailDataMap, hiddenCountries]);

@@ -144,8 +144,10 @@ export function PlzLayers({
         .filter((r) => r.visible && r.stops.length > 0)
         .flatMap((r) =>
           r.stops.map((s, i) => {
-            const code = s.plz ?? s.label;
-            const cc = findCountryForCoord(s.coordinate, detailDataMap);
+            const rawPlz = s.plz ?? s.label;
+            const parts = rawPlz.split(':');
+            const cc = parts.length > 1 ? parts[0].toUpperCase() : findCountryForCoord(s.coordinate, detailDataMap);
+            const displayCode = parts.length > 1 ? parts[1] : rawPlz;
             const isFirst = i === 0;
             const isLast = i === r.stops.length - 1;
             return (
@@ -162,7 +164,7 @@ export function PlzLayers({
                   >
                     <span className="opacity-60 text-[10px]">{String.fromCharCode(65 + i)}</span>
                     {cc && <span className="uppercase text-[9px] opacity-70 border-r border-white/30 pr-1">{cc}</span>}
-                    <span>{code}</span>
+                    <span>{displayCode}</span>
                   </div>
                   <div
                     className="h-3 w-0.5"
@@ -241,19 +243,33 @@ function CountryLayers({
     if (visibleRoutes.length === 0) return fadedExpr;
 
     const pairs: unknown[] = [];
+    const seen = new Set<string>();
     for (const route of visibleRoutes) {
-      for (const plz of route.plzCodes) pairs.push(plz, route.color);
+      for (const plz of route.plzCodes) {
+        const parts = plz.split(':');
+        const cc = parts.length > 1 ? parts[0] : '';
+        const plzCode = parts.length > 1 ? parts[1] : parts[0];
+        if (cc && cc !== code) continue;
+        if (seen.has(plzCode)) continue;
+        seen.add(plzCode);
+        pairs.push(plzCode, route.color);
+      }
     }
+    if (pairs.length === 0) return fadedExpr;
     return ['match', ['get', dpk], ...pairs, fadedExpr];
-  }, [routes, dpk, allPlz2Codes, dark, colorBlind]);
+  }, [routes, dpk, code, allPlz2Codes, dark, colorBlind]);
 
   const plz5FillOpacity = useMemo(() => {
     const visibleRoutes = routes.filter((r) => r.visible && r.plzCodes.length > 0);
     if (visibleRoutes.length === 0) return 0.5;
-    const assigned = visibleRoutes.flatMap((r) => r.plzCodes);
+    const assigned = visibleRoutes.flatMap((r) => r.plzCodes
+      .filter(p => { const parts = p.split(':'); return parts.length === 1 || parts[0] === code; })
+      .map(p => p.includes(':') ? p.split(':')[1] : p)
+    );
     if (assigned.length === 0) return 0.5;
-    return ['match', ['get', dpk], ...assigned.flatMap((plz) => [plz, 0.7]), 0.5];
-  }, [routes, dpk]);
+    const unique = [...new Set(assigned)];
+    return ['match', ['get', dpk], ...unique.flatMap((plz) => [plz, 0.7]), 0.5];
+  }, [routes, dpk, code]);
 
   const hoveredPlz2 = hoveredFeatureId && hoveredFeatureId.length >= 2 ? hoveredFeatureId.slice(0, 2) : null;
 
