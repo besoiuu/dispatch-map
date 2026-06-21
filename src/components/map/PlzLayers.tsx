@@ -147,7 +147,11 @@ export function PlzLayers({
             const rawPlz = s.plz ?? s.label ?? '';
             const parts = rawPlz.split(':');
             const displayCode = parts.length > 1 ? parts[1] : rawPlz;
-            const shortLabel = (s.label ?? displayCode).split(',')[0].slice(0, 18);
+            const fullLabel = s.label ?? displayCode;
+            const labelParts = fullLabel.split(',');
+            const shortLabel = labelParts.length > 1
+              ? `${labelParts[0].trim()}, ${labelParts[1].trim()}`.slice(0, 30)
+              : fullLabel.slice(0, 25);
             const isFirst = i === 0;
             const isLast = i === r.stops.length - 1;
             const letter = String.fromCharCode(65 + i);

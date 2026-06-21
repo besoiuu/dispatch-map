@@ -35,6 +35,7 @@ interface GeoResult {
   type: 'geo';
   name: string;
   displayName: string;
+  shortLabel: string;
   lat: number;
   lng: number;
 }
@@ -48,6 +49,21 @@ interface PlzResult {
 
 type SearchResultItem = PlzResult | GeoResult;
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function buildGeoLabel(item: any): { name: string; shortLabel: string } {
+  const addr = item.address || {};
+  const road = addr.road || addr.pedestrian || addr.path || '';
+  const houseNumber = addr.house_number || '';
+  const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || '';
+  const postcode = addr.postcode || '';
+
+  const street = road && houseNumber ? `${road} ${houseNumber}` : road || item.name || item.display_name.split(',')[0];
+  const shortLabel = city ? `${street}, ${city}` : street;
+  const name = postcode && city ? `${street}, ${postcode} ${city}` : shortLabel;
+
+  return { name, shortLabel };
+}
+
 async function geocodeSearch(query: string): Promise<GeoResult[]> {
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&viewbox=-10,35,30,60&bounded=0&addressdetails=1`;
   try {
@@ -56,17 +72,22 @@ async function geocodeSearch(query: string): Promise<GeoResult[]> {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return data.map((item: { display_name: string; name: string; lat: string; lon: string }) => ({
-      type: 'geo' as const,
-      name: item.name || item.display_name.split(',')[0],
-      displayName: item.display_name,
-      lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon),
-    }));
+    return data.map((item: any) => {
+      const { name, shortLabel } = buildGeoLabel(item);
+      return {
+        type: 'geo' as const,
+        name,
+        shortLabel,
+        displayName: item.display_name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+      };
+    });
   } catch {
     return [];
   }
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 interface SearchBarProps {
   detailData: FeatureCollection | null;
@@ -144,9 +165,7 @@ export function SearchBar({ detailData }: SearchBarProps) {
       window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox } }));
 
       if (activeRouteId) {
-        const area = result.displayName.split(',').slice(1, 3).map(s => s.trim()).join(', ');
-        const label = area ? `${result.name}, ${area}` : result.name;
-        addWaypoint(activeRouteId, [result.lng, result.lat], undefined, label);
+        addWaypoint(activeRouteId, [result.lng, result.lat], undefined, result.name);
       }
 
       clear();
