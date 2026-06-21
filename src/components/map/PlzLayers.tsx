@@ -12,6 +12,7 @@ import {
   buildRegionColorExpression,
   buildFadedRegionColorExpression,
   getRegionColorFaded,
+  setCountryHueContext,
 } from '@/lib/colors';
 import { formatDistance } from '@/lib/routing';
 
@@ -86,6 +87,10 @@ function findCountryForCoord(
   if (lat > 46.3 && lat < 49 && lng > 9.5 && lng < 17.2) return 'AT';
   if (lat > 48.5 && lat < 51.1 && lng > 12 && lng < 19) return 'CZ';
   if (lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1) return 'DE';
+  if (lat > 49 && lat < 55 && lng > 14 && lng < 24.2) return 'PL';
+  if (lat > 45.7 && lat < 48.6 && lng > 16 && lng < 22.9) return 'HU';
+  if (lat > 43.6 && lat < 48.3 && lng > 20.2 && lng < 29.7) return 'RO';
+  if (lat > 36 && lat < 47.1 && lng > 6.6 && lng < 18.5) return 'IT';
   return null;
 }
 
@@ -205,6 +210,8 @@ function CountryLayers({
   const dpk = config.detailPropertyKey;
   const opk = config.overviewPropertyKey;
   const vis = visible ? 'visible' : 'none';
+
+  setCountryHueContext(code);
 
   const plz2Codes = useMemo(() => {
     if (!overviewData) return [];

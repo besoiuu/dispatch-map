@@ -1,4 +1,4 @@
-export type CountryCode = 'de' | 'nl' | 'fr' | 'be' | 'dk' | 'at' | 'cz';
+export type CountryCode = 'de' | 'nl' | 'fr' | 'be' | 'dk' | 'at' | 'cz' | 'pl' | 'hu' | 'ro' | 'it';
 
 export interface CountryConfig {
   code: CountryCode;

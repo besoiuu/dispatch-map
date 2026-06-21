@@ -39,6 +39,7 @@ yarn-error.log*
 *.topojson.br
 *_raw.geojson
 *_osm.json
+*_osm.json
 
 # typescript
 *.tsbuildinfo

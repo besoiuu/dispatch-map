@@ -16,6 +16,10 @@ function guessCountry(coord: [number, number]): string {
   if (lat > 46.3 && lat < 49 && lng > 9.5 && lng < 17.2) return 'AT';
   if (lat > 48.5 && lat < 51.1 && lng > 12 && lng < 19) return 'CZ';
   if (lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1) return 'DE';
+  if (lat > 49 && lat < 55 && lng > 14 && lng < 24.2) return 'PL';
+  if (lat > 45.7 && lat < 48.6 && lng > 16 && lng < 22.9) return 'HU';
+  if (lat > 43.6 && lat < 48.3 && lng > 20.2 && lng < 29.7) return 'RO';
+  if (lat > 36 && lat < 47.1 && lng > 6.6 && lng < 18.5) return 'IT';
   return '';
 }
 
@@ -309,6 +313,16 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
                   Google Maps
                 </a>
               )}
+              <button
+                onClick={() => {
+                  const codes = stops.map(s => s.plz ?? s.label).join(',');
+                  const url = `${window.location.origin}/#route=${encodeURIComponent(route.name)}:${codes}`;
+                  navigator.clipboard.writeText(url);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400"
+              >Share Link</button>
               <button onClick={handleCopy} className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">{copied ? 'Copied!' : 'Copy'}</button>
               <button onClick={handleExportCSV} className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">CSV</button>
               <button onClick={() => clearRoute(route.id)} className="text-xs text-red-500 hover:text-red-700">Clear</button>

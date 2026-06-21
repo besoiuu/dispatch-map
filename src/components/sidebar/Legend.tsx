@@ -14,6 +14,10 @@ const FLAGS: Record<CountryCode, string> = {
   dk: '🇩🇰',
   at: '🇦🇹',
   cz: '🇨🇿',
+  pl: '🇵🇱',
+  hu: '🇭🇺',
+  ro: '🇷🇴',
+  it: '🇮🇹',
 };
 
 export function Legend() {

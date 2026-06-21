@@ -28,6 +28,22 @@ function codeToHueCB(code: string): number {
   return CB_HUES[Math.abs(num) % CB_HUES.length];
 }
 
+// Country-based hue: each country gets a fixed base hue, tiles are shades of it
+const COUNTRY_HUES: Record<string, number> = {
+  de: 210, nl: 30, fr: 220, be: 45, dk: 340,
+  at: 150, cz: 280, pl: 0, hu: 120, ro: 200, it: 80,
+};
+
+let countryHueMode = '';
+export function setCountryHueContext(countryCode: string) { countryHueMode = countryCode; }
+
+function codeToHueCountry(code: string): number {
+  const baseHue = COUNTRY_HUES[countryHueMode] ?? 0;
+  let num = 0;
+  for (let i = 0; i < code.length; i++) num = num * 31 + code.charCodeAt(i);
+  return (baseHue + (num % 60) - 30 + 360) % 360;
+}
+
 let colorBlindMode = false;
 export function setColorBlindMode(enabled: boolean) {
   colorBlindMode = enabled;
@@ -37,17 +53,20 @@ export function setColorBlindMode(enabled: boolean) {
 const regionColorCache = new Map<string, string>();
 
 export function getRegionColor(plz2: string): string {
-  const cached = regionColorCache.get(plz2);
+  const key = countryHueMode + ':' + plz2;
+  const cached = regionColorCache.get(key);
   if (cached) return cached;
 
-  const hue = colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2);
-  const color = hslToHex(hue, colorBlindMode ? 70 : 60, 50);
-  regionColorCache.set(plz2, color);
+  const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
+  const sat = countryHueMode ? 55 : (colorBlindMode ? 70 : 60);
+  const light = countryHueMode ? (45 + (codeToHue(plz2) % 15)) : 50;
+  const color = hslToHex(hue, sat, light);
+  regionColorCache.set(key, color);
   return color;
 }
 
 export function getRegionColorFaded(plz2: string, dark = false): string {
-  const hue = colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2);
+  const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
   if (dark) return hslToHex(hue, 25, 22);
   return hslToHex(hue, 25, 88);
 }
