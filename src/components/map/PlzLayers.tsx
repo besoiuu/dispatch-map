@@ -256,9 +256,14 @@ function CountryLayers({
     <>
       {overviewData && (
         <Source id={`plz2-source-${code}`} type="geojson" data={overviewData}>
-          <Layer id={`plz2-fill-${code}`} type="fill" minzoom={0} maxzoom={threshold + 0.5}
+          <Layer id={`plz2-fill-${code}`} type="fill-extrusion" minzoom={0} maxzoom={threshold + 0.5}
             layout={{ visibility: vis }}
-            paint={{ 'fill-color': plz2FillColor as any, 'fill-opacity': dark ? 0.5 : 0.4 }} />
+            paint={{
+              'fill-extrusion-color': plz2FillColor as any,
+              'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 3, 80000, 6, 30000, 9, 5000] as any,
+              'fill-extrusion-base': 0,
+              'fill-extrusion-opacity': dark ? 0.7 : 0.6,
+            }} />
           <Layer id={`plz2-outline-${code}`} type="line" minzoom={0} maxzoom={threshold + 0.5}
             layout={{ visibility: vis }}
             paint={{ 'line-color': dark ? '#888888' : '#555555', 'line-width': 1.5 }} />

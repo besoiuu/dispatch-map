@@ -212,6 +212,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
         longitude: 8.5,
         latitude: 51.0,
         zoom: 5.5,
+        pitch: 30,
       }}
       style={{ width: '100%', height: '100%' }}
       minZoom={3}
