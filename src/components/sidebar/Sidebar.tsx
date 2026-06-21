@@ -99,16 +99,20 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
         <SearchBar detailData={detailData} />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {!detailData ? (
+      {!detailData ? (
+        <div className="flex-1 overflow-y-auto">
           <SidebarSkeleton />
-        ) : (
-          <>
+        </div>
+      ) : (
+        <>
+          <div className="shrink-0">
             <RouteManager detailData={detailData} />
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">
             <Legend />
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
       <div className="border-t border-gray-200 px-3 py-1.5 text-center dark:border-gray-700">
         <a
           href="https://revolut.me/besoiu"
