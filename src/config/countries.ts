@@ -102,7 +102,7 @@ export const countries: Record<CountryCode, CountryConfig> = {
     detailPath: '/data/cz/okres.geojson',
     overviewPath: '/data/cz/region.geojson',
     overviewZoomThreshold: 9,
-    detailLabelMinZoom: 7,
+    detailLabelMinZoom: 11,
     detailPropertyKey: 'plz5',
     overviewPropertyKey: 'plz2',
   },
