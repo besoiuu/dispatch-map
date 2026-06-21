@@ -212,7 +212,7 @@ export function SearchBar({ detailData }: SearchBarProps) {
         onKeyDown={handleKeyDown}
         onFocus={() => allResults.length > 0 && setOpen(true)}
         placeholder="Search postal code or place..."
-        className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-colors"
       />
       {(query || geoLoading) && (
         <button
@@ -221,7 +221,7 @@ export function SearchBar({ detailData }: SearchBarProps) {
             setOpen(false);
             setGeoResults([]);
           }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors rounded-full p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           {geoLoading ? (
             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -236,12 +236,12 @@ export function SearchBar({ detailData }: SearchBarProps) {
         </button>
       )}
       {open && allResults.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+        <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
           {allResults.map((r, i) => (
             <li key={r.type === 'plz' ? `plz-${r.plz}` : `geo-${i}`}>
               <button
                 onClick={() => selectResult(r)}
-                className={`w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-gray-700 ${
+                className={`cursor-pointer w-full px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-gray-700 ${
                   i === selectedIndex ? 'bg-blue-50 dark:bg-gray-700' : ''
                 }`}
               >

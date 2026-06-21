@@ -7,6 +7,7 @@ import { SearchBar } from './SearchBar';
 import { RouteManager } from './RouteManager';
 import { Legend } from './Legend';
 import { CountrySelector } from '../country/CountrySelector';
+import { HelpPanel } from '../ui/HelpPanel';
 import { useMapStore } from '@/store/mapStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useRouteStore } from '@/store/routeStore';
@@ -61,14 +62,15 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
   const hasRoutes = routes.length > 0;
 
   return (
-    <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full md:w-[var(--sidebar-width)] flex-col border-l-0 md:border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full md:w-(--sidebar-width) flex-col border-l-0 md:border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="border-b border-gray-200 px-3 py-2 dark:border-gray-700">
         <div className="flex flex-wrap items-center justify-between gap-1">
           <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100">Dispatch Map</h1>
           <div className="flex items-center gap-1">
+            <HelpPanel />
             <button
               onClick={toggleColorBlind}
-              className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors ${colorBlind ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800'}`}
+              className={`cursor-pointer rounded-md px-2 py-1 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${colorBlind ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800'}`}
               title={colorBlind ? 'Switch to normal colors' : 'Switch to color blind friendly palette'}
               aria-label="Toggle color blind mode"
               aria-pressed={colorBlind}
@@ -77,7 +79,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
             </button>
             <button
               onClick={toggle}
-              className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              className="cursor-pointer rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
               aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
@@ -114,13 +116,16 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
           </div>
         </>
       )}
-      <div className="border-t border-gray-200 px-3 py-1.5 text-center dark:border-gray-700">
+      <div className="border-t border-gray-200 px-3 py-2 text-center dark:border-gray-700">
         <a
           href="https://revolut.me/besoiu"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[10px] text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-400"
+          className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
         >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
           Support this project
         </a>
       </div>

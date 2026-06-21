@@ -45,13 +45,13 @@ export function Legend() {
     <div className="border-t border-gray-200 dark:border-gray-700">
       <button
         onClick={() => setSectionOpen(!sectionOpen)}
-        className="flex w-full items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+        className="cursor-pointer flex w-full items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
       >
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           Regions ({total})
         </h3>
         <svg
-          className={`h-3 w-3 text-gray-400 transition-transform ${sectionOpen ? 'rotate-90' : ''}`}
+          className={`h-3 w-3 text-gray-400 transition-transform duration-200 ${sectionOpen ? 'rotate-90' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -75,13 +75,13 @@ export function Legend() {
           <div key={code} className="mb-1">
             <button
               onClick={() => toggle(code)}
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="cursor-pointer flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
             >
               <span>{FLAGS[code]}</span>
               <span className="text-gray-800 dark:text-gray-200">{config.name}</span>
               <span className="text-xs text-gray-400">({regions.length})</span>
               <svg
-                className={`ml-auto h-3 w-3 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                className={`ml-auto h-3 w-3 text-gray-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -93,7 +93,7 @@ export function Legend() {
                   <button
                     key={`${code}-${region.code}`}
                     onClick={() => handleClick(region.bbox)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-0.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="cursor-pointer flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-sm shrink-0"

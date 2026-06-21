@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Route, RouteStop } from '@/types/route';
 import type { FeatureCollection } from 'geojson';
 import { useRouteStore } from '@/store/routeStore';
+import { useToastStore } from '@/store/toastStore';
 import { routeToCSV, downloadCSV, copyRouteAsText } from '@/lib/export';
 import { calculateRoute, formatDistance, formatDuration, buildGoogleMapsUrl } from '@/lib/routing';
 
@@ -99,9 +100,9 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
   const setStops = useRouteStore((s) => s.setStops);
   const setRouteGeometry = useRouteStore((s) => s.setRouteGeometry);
   const setRouteCalculating = useRouteStore((s) => s.setRouteCalculating);
+  const addToast = useToastStore((s) => s.addToast);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(route.name);
-  const [copied, setCopied] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOver = useRef<number | null>(null);
 
@@ -112,13 +113,13 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
 
   const handleCopy = async () => {
     await copyRouteAsText(route);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    addToast('Route copied to clipboard');
   };
 
   const handleExportCSV = () => {
     const csv = routeToCSV(route);
     downloadCSV(csv, `${route.name.replace(/\s+/g, '_')}.csv`);
+    addToast('CSV file downloaded');
   };
 
   const stops = buildStopsFromPlz(route.plzCodes, route.stops, detailData);
@@ -186,7 +187,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
       <div className="flex items-center gap-2 p-3">
         <button
           onClick={onActivate}
-          className="h-4 w-4 rounded-full border-2 border-gray-300 flex-shrink-0"
+          className="cursor-pointer h-4 w-4 rounded-full border-2 border-gray-300 shrink-0 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
           style={{ backgroundColor: route.color }}
         />
         {editing ? (
@@ -195,7 +196,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
             onChange={(e) => setEditName(e.target.value)}
             onBlur={handleRename}
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-            className="flex-1 rounded border border-gray-300 px-1.5 py-0.5 text-sm focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+            className="flex-1 rounded-lg border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 transition-colors"
             autoFocus
           />
         ) : (
@@ -203,7 +204,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
             <button
               onClick={onActivate}
               onDoubleClick={() => { setEditName(route.name); setEditing(true); }}
-              className="flex-1 text-left text-sm font-medium text-gray-800 dark:text-gray-200"
+              className="cursor-pointer flex-1 text-left text-sm font-medium text-gray-800 dark:text-gray-200 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               {route.name}
             </button>
@@ -215,7 +216,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
             </span>
           </>
         )}
-        <button onClick={() => toggleRouteVisibility(route.id)} className="text-gray-400 hover:text-gray-600" title={route.visible ? 'Hide' : 'Show'}>
+        <button onClick={() => toggleRouteVisibility(route.id)} className="cursor-pointer text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title={route.visible ? 'Hide' : 'Show'}>
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {route.visible
               ? <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></>
@@ -223,7 +224,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
             }
           </svg>
         </button>
-        <button onClick={() => deleteRoute(route.id)} className="text-gray-400 hover:text-red-500" title="Delete">
+        <button onClick={() => deleteRoute(route.id)} className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Delete">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -270,7 +271,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
 
                 <button
                   onClick={() => removeStop(route.id, stop.id)}
-                  className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  className="cursor-pointer text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:opacity-100"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -303,14 +304,14 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
             )}
             <div className="flex flex-wrap gap-2">
               {route.geometry && (
-                <button onClick={doCalculate} className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400">Recalculate</button>
+                <button onClick={doCalculate} className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 transition-colors rounded px-1.5 py-0.5 hover:bg-blue-50 dark:hover:bg-blue-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Recalculate</button>
               )}
               {stops.length >= 2 && (
                 <a
                   href={buildGoogleMapsUrl(stops.map((s) => ({ coordinate: s.coordinate, label: s.label })))}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-green-600 hover:text-green-800 dark:text-green-400"
+                  className="cursor-pointer text-xs text-green-600 hover:text-green-800 dark:text-green-400 transition-colors rounded px-1.5 py-0.5 hover:bg-green-50 dark:hover:bg-green-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   Google Maps
                 </a>
@@ -320,14 +321,13 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
                   const codes = stops.map(s => s.plz ?? s.label).join(',');
                   const url = `${window.location.origin}/#route=${encodeURIComponent(route.name)}:${codes}`;
                   navigator.clipboard.writeText(url);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1500);
+                  addToast('Share link copied to clipboard');
                 }}
-                className="text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400"
+                className="cursor-pointer text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400 transition-colors rounded px-1.5 py-0.5 hover:bg-purple-50 dark:hover:bg-purple-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >Share Link</button>
-              <button onClick={handleCopy} className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">{copied ? 'Copied!' : 'Copy'}</button>
-              <button onClick={handleExportCSV} className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">CSV</button>
-              <button onClick={() => clearRoute(route.id)} className="text-xs text-red-500 hover:text-red-700">Clear</button>
+              <button onClick={handleCopy} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Copy</button>
+              <button onClick={handleExportCSV} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">CSV</button>
+              <button onClick={() => clearRoute(route.id)} className="cursor-pointer text-xs text-red-500 hover:text-red-700 transition-colors rounded px-1.5 py-0.5 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Clear</button>
             </div>
           </div>
         </div>

@@ -18,10 +18,10 @@ export function CountrySelector() {
             aria-pressed={visible}
             aria-label={`${visible ? 'Hide' : 'Show'} ${countries[code].name}`}
             title={`${visible ? 'Hide' : 'Show'} ${countries[code].name}`}
-            className={`rounded px-1.5 py-0.5 text-[10px] font-bold transition-colors ${
+            className={`cursor-pointer rounded px-2 py-1 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900 ${
               visible
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-200 text-gray-400 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-500 dark:hover:bg-gray-600'
             }`}
           >
             {code.toUpperCase()}
