@@ -215,7 +215,9 @@ function CountryLayers({
 
   const plz2Codes = useMemo(() => {
     if (!overviewData) return [];
-    return overviewData.features.map((f) => String(f.properties?.[opk] ?? ''));
+    const set = new Set<string>();
+    for (const f of overviewData.features) set.add(String(f.properties?.[opk] ?? ''));
+    return Array.from(set);
   }, [overviewData, opk]);
 
   const allPlz2Codes = useMemo(() => {
