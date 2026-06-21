@@ -101,8 +101,20 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
           if (features.length > 0) {
             const layerId = features[0].layer?.id || '';
             country = layerId.replace('plz5-fill-', '').toUpperCase();
-            plz = String(features[0].properties?.plz5 ?? '');
-            plzName = String(features[0].properties?.name ?? '');
+            plz = String(features[0].properties?.plz5 ?? '') || undefined;
+            plzName = String(features[0].properties?.name ?? '') || undefined;
+          }
+        }
+        if (!plz) {
+          const plz2Layers = enabledCountries.map((c) => `plz2-fill-${c}`).filter((l) => map.getLayer(l));
+          if (plz2Layers.length > 0) {
+            const features = map.queryRenderedFeatures(e.point, { layers: plz2Layers });
+            if (features.length > 0) {
+              const layerId = features[0].layer?.id || '';
+              country = layerId.replace('plz2-fill-', '').toUpperCase();
+              plz = String(features[0].properties?.plz2 ?? '') || undefined;
+              plzName = String(features[0].properties?.label ?? features[0].properties?.name ?? '') || undefined;
+            }
           }
         }
       }
@@ -218,28 +230,60 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
     };
     window.addEventListener('map:setzoom', zoomHandler);
 
-    const keyHandler = (e: KeyboardEvent) => {
+    const keysDown = new Set<string>();
+    let panFrame = 0;
+    const PAN_SPEED = 4;
+    const PAN_MAX = 12;
+    let panVelocity = 0;
+
+    const panLoop = () => {
       const map = mapRef.current?.getMap();
-      if (!map) return;
+      if (!map || keysDown.size === 0) {
+        panVelocity = 0;
+        panFrame = 0;
+        return;
+      }
+      panVelocity = Math.min(panVelocity + PAN_SPEED * 0.15, PAN_MAX);
+      let dx = 0, dy = 0;
+      if (keysDown.has('w')) dy -= panVelocity;
+      if (keysDown.has('s')) dy += panVelocity;
+      if (keysDown.has('a')) dx -= panVelocity;
+      if (keysDown.has('d')) dx += panVelocity;
+      if (dx !== 0 || dy !== 0) {
+        map.panBy([dx, dy], { duration: 0 });
+      }
+      panFrame = requestAnimationFrame(panLoop);
+    };
+
+    const keyDownHandler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
-      const PAN = 100;
-      switch (e.key.toLowerCase()) {
-        case 'w': map.panBy([0, -PAN], { duration: 200 }); break;
-        case 'a': map.panBy([-PAN, 0], { duration: 200 }); break;
-        case 's': map.panBy([0, PAN], { duration: 200 }); break;
-        case 'd': map.panBy([PAN, 0], { duration: 200 }); break;
-        default: return;
-      }
+      const key = e.key.toLowerCase();
+      if (!['w', 'a', 's', 'd'].includes(key)) return;
       e.preventDefault();
+      if (keysDown.has(key)) return;
+      keysDown.add(key);
+      if (!panFrame) panFrame = requestAnimationFrame(panLoop);
     };
-    window.addEventListener('keydown', keyHandler);
+
+    const keyUpHandler = (e: KeyboardEvent) => {
+      keysDown.delete(e.key.toLowerCase());
+      if (keysDown.size === 0) {
+        cancelAnimationFrame(panFrame);
+        panFrame = 0;
+        panVelocity = 0;
+      }
+    };
+
+    window.addEventListener('keydown', keyDownHandler);
+    window.addEventListener('keyup', keyUpHandler);
 
     return () => {
       window.removeEventListener('map:flyto', handler);
       window.removeEventListener('map:setzoom', zoomHandler);
-      window.removeEventListener('keydown', keyHandler);
+      window.removeEventListener('keydown', keyDownHandler);
+      window.removeEventListener('keyup', keyUpHandler);
+      cancelAnimationFrame(panFrame);
     };
   }, []);
 
