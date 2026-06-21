@@ -7,6 +7,18 @@ import { useRouteStore } from '@/store/routeStore';
 import { routeToCSV, downloadCSV, copyRouteAsText } from '@/lib/export';
 import { calculateRoute, formatDistance, formatDuration, buildGoogleMapsUrl } from '@/lib/routing';
 
+function guessCountry(coord: [number, number]): string {
+  const [lng, lat] = coord;
+  if (lat > 54.5 && lng > 8 && lng < 15.5) return 'DK';
+  if (lat > 51 && lat < 54 && lng > 3.3 && lng < 7.2) return 'NL';
+  if (lat > 49.5 && lat < 51.5 && lng > 2.5 && lng < 6.4) return 'BE';
+  if (lat > 42 && lat < 51.1 && lng > -5 && lng < 8.2) return 'FR';
+  if (lat > 46.3 && lat < 49 && lng > 9.5 && lng < 17.2) return 'AT';
+  if (lat > 48.5 && lat < 51.1 && lng > 12 && lng < 19) return 'CZ';
+  if (lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1) return 'DE';
+  return '';
+}
+
 interface RoutePanelProps {
   route: Route;
   isActive: boolean;
@@ -233,12 +245,12 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
                   {stopLetters[i] ?? (i + 1)}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex items-center gap-1.5">
                   <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                     {stop.plz ?? stop.label}
                   </span>
                   {stop.type === 'plz' && (
-                    <span className="ml-1.5 text-xs text-gray-400">{stop.type === 'plz' ? 'PLZ' : 'WP'}</span>
+                    <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1">{guessCountry(stop.coordinate)}</span>
                   )}
                 </div>
 

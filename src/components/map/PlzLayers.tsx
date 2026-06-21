@@ -63,6 +63,32 @@ function computeOverviewPoints(data: FeatureCollection): FeatureCollection<Point
   return { type: 'FeatureCollection', features };
 }
 
+function findCountryForCoord(
+  coord: [number, number],
+  dataMap: Partial<Record<CountryCode, FeatureCollection>>
+): string | null {
+  const [lng, lat] = coord;
+  for (const code of enabledCountries) {
+    const data = dataMap[code];
+    if (!data) continue;
+    for (const f of data.features) {
+      if (!f.geometry || !('coordinates' in f.geometry)) continue;
+      const bbox = f.properties?.bbox;
+      if (bbox && (lng < bbox[0] || lng > bbox[2] || lat < bbox[1] || lat > bbox[3])) continue;
+      return code.toUpperCase();
+    }
+  }
+  // Fallback: rough bbox check
+  if (lat > 54.5 && lng > 8 && lng < 15.5) return 'DK';
+  if (lat > 51 && lat < 54 && lng > 3.3 && lng < 7.2) return 'NL';
+  if (lat > 49.5 && lat < 51.5 && lng > 2.5 && lng < 6.4) return 'BE';
+  if (lat > 42 && lat < 51.1 && lng > -5 && lng < 8.2) return 'FR';
+  if (lat > 46.3 && lat < 49 && lng > 9.5 && lng < 17.2) return 'AT';
+  if (lat > 48.5 && lat < 51.1 && lng > 12 && lng < 19) return 'CZ';
+  if (lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1) return 'DE';
+  return null;
+}
+
 export function PlzLayers({
   detailDataMap,
   overviewDataMap,
@@ -104,29 +130,47 @@ export function PlzLayers({
               geometry: { type: 'LineString', coordinates: r.geometry!.coordinates },
             }}
           >
-            <Layer id={`route-line-border-${r.id}`} type="line" paint={{ 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.7 }} />
+            <Layer id={`route-line-border-${r.id}`} type="line" paint={{ 'line-color': dark ? '#000000' : '#ffffff', 'line-width': 10, 'line-opacity': 0.5 }} />
             <Layer id={`route-line-fill-${r.id}`} type="line" paint={{ 'line-color': r.color, 'line-width': 4, 'line-opacity': 1 }} />
+            <Layer id={`route-line-dash-${r.id}`} type="line" paint={{ 'line-color': '#ffffff', 'line-width': 1, 'line-opacity': 0.6, 'line-dasharray': [2, 4] }} />
           </Source>
         ))}
       {routes
         .filter((r) => r.visible && r.stops.length > 0)
         .flatMap((r) =>
-          r.stops.map((s, i) => (
-            <Marker
-              key={`stop-${r.id}-${s.id}`}
-              longitude={s.coordinate[0]}
-              latitude={s.coordinate[1]}
-              anchor="center"
-            >
-              <div
-                className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-white shadow-lg"
-                style={{ backgroundColor: r.color, border: '2px solid white' }}
+          r.stops.map((s, i) => {
+            const code = s.plz ?? s.label;
+            const cc = findCountryForCoord(s.coordinate, detailDataMap);
+            const isFirst = i === 0;
+            const isLast = i === r.stops.length - 1;
+            return (
+              <Marker
+                key={`stop-${r.id}-${s.id}`}
+                longitude={s.coordinate[0]}
+                latitude={s.coordinate[1]}
+                anchor="bottom"
               >
-                <span className="opacity-70">{String.fromCharCode(65 + i)}</span>
-                <span>{s.plz ?? s.label}</span>
-              </div>
-            </Marker>
-          ))
+                <div className="flex flex-col items-center">
+                  <div
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-white shadow-lg"
+                    style={{ backgroundColor: r.color, border: '2px solid white' }}
+                  >
+                    <span className="opacity-60 text-[10px]">{String.fromCharCode(65 + i)}</span>
+                    {cc && <span className="uppercase text-[9px] opacity-70 border-r border-white/30 pr-1">{cc}</span>}
+                    <span>{code}</span>
+                  </div>
+                  <div
+                    className="h-3 w-0.5"
+                    style={{ backgroundColor: r.color }}
+                  />
+                  <div
+                    className={`h-3 w-3 rounded-full border-2 border-white ${isFirst ? 'bg-green-500' : isLast ? 'bg-red-500' : ''}`}
+                    style={!isFirst && !isLast ? { backgroundColor: r.color } : {}}
+                  />
+                </div>
+              </Marker>
+            );
+          })
         )}
     </>
   );

@@ -215,6 +215,15 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       }}
       style={{ width: '100%', height: '100%' }}
       projection={{ type: 'globe' }}
+      onLoad={(e) => {
+        (e.target as unknown as { setFog: (fog: Record<string, unknown>) => void }).setFog({
+          color: dark ? '#0f172a' : '#e2e8f0',
+          'high-color': dark ? '#1e3a5f' : '#93c5fd',
+          'space-color': dark ? '#0a0f1a' : '#dbeafe',
+          'horizon-blend': 0.05,
+          'star-intensity': dark ? 0.6 : 0,
+        });
+      }}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
