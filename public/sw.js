@@ -1,4 +1,4 @@
-const CACHE = 'dispatch-v2';
+const CACHE = 'dispatch-v3';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
