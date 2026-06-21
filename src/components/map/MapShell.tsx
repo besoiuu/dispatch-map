@@ -135,27 +135,26 @@ export function MapShell() {
           </svg>
         </button>
       </div>
-      {/* Desktop collapse toggle */}
-      <button
-        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-        className="cursor-pointer hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-30 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-all shadow-sm"
-        style={{ right: sidebarCollapsed ? 0 : 'var(--sidebar-width)' }}
-        title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-        aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-      >
-        <svg className={`h-3 w-3 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
       <div
         className={`
-          md:relative md:h-full md:block overflow-hidden
-          fixed inset-x-0 bottom-0 z-30 transition-all duration-300 md:transition-all
+          md:relative md:h-full md:w-(--sidebar-width) md:block
+          fixed inset-x-0 bottom-0 z-30 transition-all duration-200 ease-out will-change-transform
           ${mobileOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
-          ${sidebarCollapsed ? 'md:w-0' : 'md:w-(--sidebar-width)'}
+          ${sidebarCollapsed ? 'md:translate-x-full md:-mr-(--sidebar-width)' : 'md:translate-x-0 md:mr-0'}
         `}
       >
-        <div className="h-[60vh] md:h-full" style={{ width: 'var(--sidebar-width)' }}>
+        {/* Desktop collapse toggle */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="cursor-pointer hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors shadow-sm"
+          title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+        >
+          <svg className={`h-3 w-3 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <div className="h-[60vh] md:h-full">
           <div
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
