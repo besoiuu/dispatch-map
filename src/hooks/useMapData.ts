@@ -6,7 +6,7 @@ import { countries, enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
 import type { FeatureCollection } from 'geojson';
 
-const DATA_VERSION = 9;
+const DATA_VERSION = 10;
 
 export function useMapData() {
   const detailDataMap = useMapStore((s) => s.detailData);
