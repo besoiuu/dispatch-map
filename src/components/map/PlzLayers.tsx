@@ -135,21 +135,23 @@ export function PlzLayers({
               geometry: { type: 'LineString', coordinates: r.geometry!.coordinates },
             }}
           >
-            <Layer id={`route-line-border-${r.id}`} type="line" paint={{ 'line-color': dark ? '#000000' : '#ffffff', 'line-width': 10, 'line-opacity': 0.5 }} />
-            <Layer id={`route-line-fill-${r.id}`} type="line" paint={{ 'line-color': r.color, 'line-width': 4, 'line-opacity': 1 }} />
-            <Layer id={`route-line-dash-${r.id}`} type="line" paint={{ 'line-color': '#ffffff', 'line-width': 1, 'line-opacity': 0.6, 'line-dasharray': [2, 4] }} />
+            <Layer id={`route-line-glow-${r.id}`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': r.color, 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 8, 8, 14, 14, 20], 'line-blur': ['interpolate', ['linear'], ['zoom'], 3, 6, 8, 10, 14, 14], 'line-opacity': 0.15 }} />
+            <Layer id={`route-line-border-${r.id}`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': dark ? '#1a1a1a' : '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 5, 8, 7, 14, 9], 'line-opacity': 0.9 }} />
+            <Layer id={`route-line-fill-${r.id}`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': r.color, 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 4, 14, 5], 'line-opacity': 1 }} />
           </Source>
         ))}
       {routes
         .filter((r) => r.visible && r.stops.length > 0)
         .flatMap((r) =>
           r.stops.map((s, i) => {
-            const rawPlz = s.plz ?? s.label;
+            const rawPlz = s.plz ?? s.label ?? '';
             const parts = rawPlz.split(':');
-            const cc = parts.length > 1 ? parts[0].toUpperCase() : findCountryForCoord(s.coordinate, detailDataMap);
             const displayCode = parts.length > 1 ? parts[1] : rawPlz;
+            const shortLabel = (s.label ?? displayCode).split(',')[0].slice(0, 18);
             const isFirst = i === 0;
             const isLast = i === r.stops.length - 1;
+            const letter = String.fromCharCode(65 + i);
+            const pinColor = isFirst ? '#22c55e' : isLast ? '#ef4444' : r.color;
             return (
               <Marker
                 key={`stop-${r.id}-${s.id}`}
@@ -157,23 +159,28 @@ export function PlzLayers({
                 latitude={s.coordinate[1]}
                 anchor="bottom"
               >
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center group">
                   <div
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-white shadow-lg"
-                    style={{ backgroundColor: r.color, border: '2px solid white' }}
+                    className="relative flex items-center justify-center rounded-full text-white font-bold shadow-lg transition-all duration-150"
+                    style={{
+                      backgroundColor: pinColor,
+                      width: 28,
+                      height: 28,
+                      fontSize: 13,
+                      border: '2.5px solid white',
+                      boxShadow: `0 2px 8px ${pinColor}66`,
+                    }}
                   >
-                    <span className="opacity-60 text-[10px]">{String.fromCharCode(65 + i)}</span>
-                    {cc && <span className="uppercase text-[9px] opacity-70 border-r border-white/30 pr-1">{cc}</span>}
-                    <span>{displayCode}</span>
+                    {letter}
                   </div>
+                  <svg width="14" height="10" viewBox="0 0 14 10" className="-mt-[3px]" style={{ filter: `drop-shadow(0 1px 2px ${pinColor}44)` }}>
+                    <path d="M0 0 L7 9 L14 0" fill={pinColor} stroke="white" strokeWidth="2" strokeLinejoin="round" />
+                  </svg>
                   <div
-                    className="h-3 w-0.5"
-                    style={{ backgroundColor: r.color }}
-                  />
-                  <div
-                    className={`h-3 w-3 rounded-full border-2 border-white ${isFirst ? 'bg-green-500' : isLast ? 'bg-red-500' : ''}`}
-                    style={!isFirst && !isLast ? { backgroundColor: r.color } : {}}
-                  />
+                    className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900/85 px-1.5 py-0.5 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  >
+                    {shortLabel}
+                  </div>
                 </div>
               </Marker>
             );
