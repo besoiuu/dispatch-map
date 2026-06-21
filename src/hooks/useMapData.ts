@@ -25,6 +25,43 @@ const COUNTRY_BOUNDS: Record<CountryCode, [number, number, number, number]> = {
   it: [6.6, 36.0, 18.5, 47.1],
 };
 
+let worker: Worker | null = null;
+const pendingRequests = new Map<string, (data: FeatureCollection) => void>();
+
+function getWorker(): Worker | null {
+  if (typeof window === 'undefined') return null;
+  if (!worker) {
+    try {
+      worker = new Worker('/geojson-worker.js');
+      worker.onmessage = (e) => {
+        const { id, data, error } = e.data;
+        const resolve = pendingRequests.get(id);
+        if (resolve && !error) {
+          resolve(data);
+        } else if (error) {
+          console.error(`Worker error for ${id}:`, error);
+        }
+        pendingRequests.delete(id);
+      };
+    } catch {
+      return null;
+    }
+  }
+  return worker;
+}
+
+function fetchViaWorker(url: string): Promise<FeatureCollection> {
+  const w = getWorker();
+  if (!w) {
+    return fetch(url).then((r) => r.json());
+  }
+  const id = url;
+  return new Promise((resolve) => {
+    pendingRequests.set(id, resolve);
+    w.postMessage({ url, id });
+  });
+}
+
 const detailLoadingSet = new Set<CountryCode>();
 
 export function loadDetailForCountries(codes: CountryCode[]) {
@@ -35,8 +72,7 @@ export function loadDetailForCountries(codes: CountryCode[]) {
   for (const code of toLoad) {
     detailLoadingSet.add(code);
     const config = countries[code];
-    fetch(`${config.detailPath}?v=${DATA_VERSION}`)
-      .then(r => r.json())
+    fetchViaWorker(`${config.detailPath}?v=${DATA_VERSION}`)
       .then(data => {
         useMapStore.getState().setDetailData(code, data);
         detailLoadingSet.delete(code);
@@ -64,7 +100,6 @@ export function useMapData() {
   const overviewDataMap = useMapStore((s) => s.overviewData);
 
   useEffect(() => {
-    const controller = new AbortController();
     const { setOverviewData, setLoading, overviewData } = useMapStore.getState();
     const toLoad = enabledCountries.filter(c => !overviewData[c]);
 
@@ -78,9 +113,7 @@ export function useMapData() {
     Promise.all(
       toLoad.map(async (code) => {
         const config = countries[code];
-        const data = await fetch(`${config.overviewPath}?v=${DATA_VERSION}`, {
-          signal: controller.signal,
-        }).then(r => r.json());
+        const data = await fetchViaWorker(`${config.overviewPath}?v=${DATA_VERSION}`);
         useMapStore.getState().setOverviewData(code, data);
       })
     )
@@ -91,8 +124,6 @@ export function useMapData() {
           useMapStore.getState().setLoading(false);
         }
       });
-
-    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

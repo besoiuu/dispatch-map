@@ -16,7 +16,10 @@ import { useThemeStore } from '@/store/themeStore';
 import { loadDetailForCountries, getVisibleCountries } from '@/hooks/useMapData';
 import { PlzLayers } from './PlzLayers';
 import { MapTooltip } from './MapTooltip';
-import { ContextMenu, type ContextMenuState } from './ContextMenu';
+import dynamic from 'next/dynamic';
+import type { ContextMenuState } from './ContextMenu';
+
+const ContextMenu = dynamic(() => import('./ContextMenu').then((m) => m.ContextMenu), { ssr: false });
 
 interface MapViewProps {
   detailDataMap: Partial<Record<CountryCode, FeatureCollection>>;
@@ -178,7 +181,8 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
     if (!map) return;
 
     const zoom = map.getZoom();
-    setZoom(zoom);
+    const rounded = Math.round(zoom * 10) / 10;
+    if (rounded !== useMapStore.getState().zoom) setZoom(rounded);
 
     const b = map.getBounds();
     const visible = getVisibleCountries(

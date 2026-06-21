@@ -1,13 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { FeatureCollection } from 'geojson';
 import type { CountryCode } from '@/types/country';
 import { SearchBar } from './SearchBar';
 import { RouteManager } from './RouteManager';
 import { Legend } from './Legend';
 import { CountrySelector } from '../country/CountrySelector';
-import { HelpPanel } from '../ui/HelpPanel';
+import dynamic from 'next/dynamic';
+
+const HelpPanel = dynamic(() => import('../ui/HelpPanel').then((m) => m.HelpPanel), { ssr: false });
 import { useMapStore } from '@/store/mapStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useRouteStore } from '@/store/routeStore';
@@ -47,14 +49,22 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
 
   const loading = useMapStore((s) => s.loading);
   const hiddenCountries = useMapStore((s) => s.hiddenCountries);
+  const augmentedCache = useRef(new Map<string, GeoJSON.Feature[]>());
   const detailData = useMemo(() => {
+    const cache = augmentedCache.current;
     const visibleCountries = enabledCountries.filter((c) => !hiddenCountries.has(c));
-    const allFeatures = visibleCountries.flatMap((c) =>
-      (detailDataMap[c]?.features ?? []).map(f => ({
-        ...f,
-        properties: { ...f.properties, _country: c },
-      }))
-    );
+    const allFeatures: GeoJSON.Feature[] = [];
+    for (const c of visibleCountries) {
+      const src = detailDataMap[c]?.features;
+      if (!src) continue;
+      const cacheKey = `${c}:${src.length}`;
+      let augmented = cache.get(cacheKey);
+      if (!augmented) {
+        augmented = src.map(f => ({ ...f, properties: { ...f.properties, _country: c } }));
+        cache.set(cacheKey, augmented);
+      }
+      allFeatures.push(...augmented);
+    }
     if (allFeatures.length === 0) return null;
     return { type: 'FeatureCollection' as const, features: allFeatures };
   }, [detailDataMap, hiddenCountries]);

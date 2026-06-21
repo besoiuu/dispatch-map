@@ -41,6 +41,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
+      <head>
+        <link rel="preconnect" href="https://basemaps.cartocdn.com" />
+        <link rel="preconnect" href="https://router.project-osrm.org" />
+        <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
+      </head>
       <body className="h-full overflow-hidden font-sans touch-manipulation">{children}</body>
     </html>
   );
