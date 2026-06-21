@@ -166,8 +166,23 @@ export const countries: Record<CountryCode, CountryConfig> = {
     detailPropertyKey: 'plz5',
     overviewPropertyKey: 'plz2',
   },
+  sk: {
+    code: 'sk',
+    name: 'Slovakia',
+    center: [19.7, 48.67],
+    defaultZoom: 7,
+    overviewDigits: 2,
+    postcodeLength: 2,
+    postcodeFormat: /^\d{2}$/,
+    detailPath: '/data/sk/detail.geojson',
+    overviewPath: '/data/sk/overview.geojson',
+    overviewZoomThreshold: 8,
+    detailLabelMinZoom: 7,
+    detailPropertyKey: 'plz5',
+    overviewPropertyKey: 'plz2',
+  },
 };
 
-export const enabledCountries: CountryCode[] = ['de', 'nl', 'fr', 'be', 'dk', 'at', 'cz', 'pl', 'hu', 'ro', 'it'];
+export const enabledCountries: CountryCode[] = ['de', 'nl', 'fr', 'be', 'dk', 'at', 'cz', 'sk', 'pl', 'hu', 'ro', 'it'];
 
 export const defaultCountry: CountryCode = 'de';

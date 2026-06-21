@@ -41,6 +41,7 @@ const COUNTRY_HUES: Record<string, number> = {
   hu: 100,  // lime green
   ro: 180,  // cyan
   it: 70,   // yellow-green
+  sk: 235,  // steel blue
 };
 
 let countryHueMode = '';
