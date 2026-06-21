@@ -39,12 +39,6 @@ body {
   background-size: 200% 100%;
 }
 
-.maplibregl-canvas-container {
-  background: radial-gradient(ellipse at center, #c8ddf0 0%, #8fb8e0 40%, #4a7fb5 70%, #1a3a5c 100%);
-}
-.dark .maplibregl-canvas-container {
-  background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 40%, #070d1a 70%, #020408 100%);
-}
 
 .maplibregl-ctrl-top-left {
   top: env(safe-area-inset-top) !important;

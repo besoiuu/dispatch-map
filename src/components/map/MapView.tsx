@@ -214,22 +214,8 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
         zoom: 5.5,
       }}
       style={{ width: '100%', height: '100%' }}
-      projection={{ type: 'globe' }}
-      onLoad={(e) => {
-        const m = e.target as unknown as Record<string, unknown>;
-        try {
-          if (typeof m.setFog === 'function') {
-            (m.setFog as Function)({
-              range: [1, 10],
-              color: dark ? 'rgb(15, 23, 42)' : 'rgb(220, 230, 240)',
-              'high-color': dark ? 'rgb(30, 58, 95)' : 'rgb(147, 197, 253)',
-              'space-color': dark ? 'rgb(10, 15, 26)' : 'rgb(200, 220, 255)',
-              'horizon-blend': 0.03,
-              'star-intensity': dark ? 0.5 : 0.1,
-            });
-          }
-        } catch {}
-      }}
+      minZoom={3}
+      maxZoom={18}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
