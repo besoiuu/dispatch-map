@@ -104,6 +104,16 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
           </>
         )}
       </div>
+      <div className="border-t border-gray-200 px-3 py-1.5 text-center dark:border-gray-700">
+        <a
+          href="https://revolut.me/besoiu"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-400"
+        >
+          Support this project
+        </a>
+      </div>
     </aside>
   );
 }
