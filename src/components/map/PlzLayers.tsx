@@ -13,6 +13,7 @@ import {
   buildFadedRegionColorExpression,
   getRegionColorFaded,
   setCountryHueContext,
+  setColorBlindMode,
 } from '@/lib/colors';
 import { formatDistance } from '@/lib/routing';
 
@@ -225,6 +226,7 @@ function CountryLayers({
   const vis = visible ? 'visible' : 'none';
 
   setCountryHueContext(code);
+  setColorBlindMode(colorBlind);
 
   const plz2Codes = useMemo(() => {
     if (!overviewData) return [];

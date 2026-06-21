@@ -63,13 +63,13 @@ export function setColorBlindMode(enabled: boolean) {
 const regionColorCache = new Map<string, string>();
 
 export function getRegionColor(plz2: string): string {
-  const key = countryHueMode + ':' + plz2;
+  const key = countryHueMode + ':' + plz2 + (colorBlindMode ? ':cb' : '');
   const cached = regionColorCache.get(key);
   if (cached) return cached;
 
   const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
-  const sat = countryHueMode ? 55 : (colorBlindMode ? 70 : 60);
-  const light = countryHueMode ? (45 + (codeToHue(plz2) % 15)) : 50;
+  const sat = colorBlindMode ? 30 : (countryHueMode ? 55 : 60);
+  const light = colorBlindMode ? (60 + (codeToHue(plz2) % 15)) : (countryHueMode ? (45 + (codeToHue(plz2) % 15)) : 50);
   const color = hslToHex(hue, sat, light);
   regionColorCache.set(key, color);
   return color;
@@ -77,8 +77,9 @@ export function getRegionColor(plz2: string): string {
 
 export function getRegionColorFaded(plz2: string, dark = false): string {
   const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
-  if (dark) return hslToHex(hue, 35, 25);
-  return hslToHex(hue, 40, 78);
+  const fadedSat = colorBlindMode ? 15 : 40;
+  if (dark) return hslToHex(hue, colorBlindMode ? 20 : 35, 25);
+  return hslToHex(hue, fadedSat, 78);
 }
 
 export function buildRegionColorExpression(

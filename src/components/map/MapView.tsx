@@ -93,6 +93,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       let plz: string | undefined;
       let plzName: string | undefined;
       let country: string | undefined;
+      let isDetail = false;
 
       if (map) {
         const plz5Layers = enabledCountries.map((c) => `plz5-fill-${c}`).filter((l) => map.getLayer(l));
@@ -103,6 +104,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
             country = layerId.replace('plz5-fill-', '').toUpperCase();
             plz = String(features[0].properties?.plz5 ?? '') || undefined;
             plzName = String(features[0].properties?.name ?? '') || undefined;
+            isDetail = true;
           }
         }
         if (!plz) {
@@ -119,7 +121,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
         }
       }
 
-      setContextMenu({ x: e.point.x, y: e.point.y, lngLat: { lng, lat }, plz, plzName, country });
+      setContextMenu({ x: e.point.x, y: e.point.y, lngLat: { lng, lat }, plz, plzName, country, isDetail });
     },
     []
   );

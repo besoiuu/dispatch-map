@@ -81,11 +81,11 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
             <button
               onClick={toggleColorBlind}
               className={`cursor-pointer rounded-md px-2 py-1 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${colorBlind ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800'}`}
-              title={colorBlind ? 'Switch to normal colors' : 'Switch to color blind friendly palette'}
-              aria-label="Toggle color blind mode"
+              title={colorBlind ? 'Switch to vivid colors' : 'Switch to soft colors'}
+              aria-label="Toggle color mode"
               aria-pressed={colorBlind}
             >
-              A11y
+              Soft
             </button>
             <button
               onClick={toggle}

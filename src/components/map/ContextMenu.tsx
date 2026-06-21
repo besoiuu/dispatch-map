@@ -11,6 +11,7 @@ export interface ContextMenuState {
   plz?: string;
   plzName?: string;
   country?: string;
+  isDetail?: boolean;
 }
 
 interface ContextMenuProps {
@@ -90,7 +91,7 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
         </div>
       )}
 
-      {activeRoute && state.plz && (
+      {activeRoute && state.plz && state.isDetail && (
         <button
           onClick={handleAddPlz}
           className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
