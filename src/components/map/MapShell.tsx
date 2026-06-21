@@ -93,9 +93,14 @@ export function MapShell() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         useRouteStore.getState().undoLastAdd();
+      }
+      if (e.key === '[') {
+        setSidebarCollapsed((s) => !s);
       }
     };
     window.addEventListener('keydown', handleKeyDown);

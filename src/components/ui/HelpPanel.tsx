@@ -9,6 +9,7 @@ const SHORTCUTS = [
   { keys: ['W', 'A', 'S', 'D'], desc: 'Pan the map' },
   { keys: ['Double-click'], desc: 'Rename a route' },
   { keys: ['Drag'], desc: 'Reorder stops in a route' },
+  { keys: ['['], desc: 'Toggle sidebar' },
 ];
 
 const TIPS = [

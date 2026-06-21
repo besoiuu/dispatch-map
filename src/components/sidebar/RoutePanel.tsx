@@ -92,6 +92,8 @@ function buildStopsFromPlz(
 
 export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePanelProps) {
   const deleteRoute = useRouteStore((s) => s.deleteRoute);
+  const restoreRoute = useRouteStore((s) => s.restoreRoute);
+  const restoreRouteStops = useRouteStore((s) => s.restoreRouteStops);
   const renameRoute = useRouteStore((s) => s.renameRoute);
   const toggleRouteVisibility = useRouteStore((s) => s.toggleRouteVisibility);
   const clearRoute = useRouteStore((s) => s.clearRoute);
@@ -224,7 +226,13 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
             }
           </svg>
         </button>
-        <button onClick={() => deleteRoute(route.id)} className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Delete">
+        <button onClick={() => {
+          const routes = useRouteStore.getState().routes;
+          const idx = routes.findIndex((r) => r.id === route.id);
+          const snapshot = { ...route };
+          deleteRoute(route.id);
+          addToast(`"${route.name}" deleted`, 'info', { label: 'Undo', onClick: () => restoreRoute(snapshot, idx) });
+        }} className="cursor-pointer text-gray-400 hover:text-red-500 transition-colors rounded p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" title="Delete">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -327,7 +335,12 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
               >Share Link</button>
               <button onClick={handleCopy} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Copy</button>
               <button onClick={handleExportCSV} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">CSV</button>
-              <button onClick={() => clearRoute(route.id)} className="cursor-pointer text-xs text-red-500 hover:text-red-700 transition-colors rounded px-1.5 py-0.5 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Clear</button>
+              <button onClick={() => {
+                const savedCodes = [...route.plzCodes];
+                const savedStops = [...route.stops];
+                clearRoute(route.id);
+                addToast('Stops cleared', 'info', { label: 'Undo', onClick: () => restoreRouteStops(route.id, savedCodes, savedStops) });
+              }} className="cursor-pointer text-xs text-red-500 hover:text-red-700 transition-colors rounded px-1.5 py-0.5 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Clear</button>
             </div>
           </div>
         </div>
