@@ -30,8 +30,17 @@ function codeToHueCB(code: string): number {
 
 // Country-based hue: each country gets a fixed base hue, tiles are shades of it
 const COUNTRY_HUES: Record<string, number> = {
-  de: 210, nl: 30, fr: 220, be: 45, dk: 340,
-  at: 150, cz: 280, pl: 0, hu: 120, ro: 200, it: 80,
+  de: 210,  // blue
+  nl: 30,   // orange
+  fr: 260,  // purple
+  be: 55,   // gold
+  dk: 340,  // pink
+  at: 145,  // teal
+  cz: 300,  // magenta
+  pl: 0,    // red
+  hu: 100,  // lime green
+  ro: 180,  // cyan
+  it: 70,   // yellow-green
 };
 
 let countryHueMode = '';
@@ -41,7 +50,7 @@ function codeToHueCountry(code: string): number {
   const baseHue = COUNTRY_HUES[countryHueMode] ?? 0;
   let num = 0;
   for (let i = 0; i < code.length; i++) num = num * 31 + code.charCodeAt(i);
-  return (baseHue + (num % 60) - 30 + 360) % 360;
+  return (baseHue + (num % 20) - 10 + 360) % 360;
 }
 
 let colorBlindMode = false;
