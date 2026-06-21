@@ -44,6 +44,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
   const config = countries[activeCountry];
   const showLegend = zoom < config.overviewZoomThreshold;
 
+  const loading = useMapStore((s) => s.loading);
   const hiddenCountries = useMapStore((s) => s.hiddenCountries);
   const detailData = useMemo(() => {
     const visibleCountries = enabledCountries.filter((c) => !hiddenCountries.has(c));
@@ -99,7 +100,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
         <SearchBar detailData={detailData} />
       </div>
 
-      {!detailData ? (
+      {loading ? (
         <div className="flex-1 overflow-y-auto">
           <SidebarSkeleton />
         </div>

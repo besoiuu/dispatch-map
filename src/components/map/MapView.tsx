@@ -13,6 +13,7 @@ import { countries, enabledCountries } from '@/config/countries';
 import { useMapStore } from '@/store/mapStore';
 import { useRouteStore } from '@/store/routeStore';
 import { useThemeStore } from '@/store/themeStore';
+import { loadDetailForCountries, getVisibleCountries } from '@/hooks/useMapData';
 import { PlzLayers } from './PlzLayers';
 import { MapTooltip } from './MapTooltip';
 
@@ -150,9 +151,21 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
     setHoveredFeatureId(null);
   }, [setHoveredFeatureId]);
 
-  const handleZoomEnd = useCallback(() => {
+  const handleMoveEnd = useCallback(() => {
     const map = mapRef.current?.getMap();
-    if (map) setZoom(map.getZoom());
+    if (!map) return;
+
+    const zoom = map.getZoom();
+    setZoom(zoom);
+
+    const b = map.getBounds();
+    const visible = getVisibleCountries(
+      { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
+      zoom
+    );
+    if (visible.length > 0) {
+      loadDetailForCountries(visible);
+    }
   }, [setZoom]);
 
   useEffect(() => {
@@ -224,7 +237,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       onTouchCancel={handleTouchEnd}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onZoomEnd={handleZoomEnd}
+      onMoveEnd={handleMoveEnd}
       interactiveLayerIds={enabledCountries.flatMap((c) => {
         if (useMapStore.getState().hiddenCountries.has(c)) return [];
         return [
