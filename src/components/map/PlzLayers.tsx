@@ -261,7 +261,7 @@ function CountryLayers({
 
   const plz5FillOpacity = useMemo(() => {
     const visibleRoutes = routes.filter((r) => r.visible && r.plzCodes.length > 0);
-    if (visibleRoutes.length === 0) return 0.5;
+    if (visibleRoutes.length === 0) return 0.65;
     const assigned = visibleRoutes.flatMap((r) => r.plzCodes
       .filter(p => { const parts = p.split(':'); return parts.length === 1 || parts[0] === code; })
       .map(p => p.includes(':') ? p.split(':')[1] : p)

@@ -77,8 +77,8 @@ export function getRegionColor(plz2: string): string {
 
 export function getRegionColorFaded(plz2: string, dark = false): string {
   const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
-  if (dark) return hslToHex(hue, 25, 22);
-  return hslToHex(hue, 25, 88);
+  if (dark) return hslToHex(hue, 35, 25);
+  return hslToHex(hue, 40, 78);
 }
 
 export function buildRegionColorExpression(
