@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import type { FeatureCollection, Feature, Position } from 'geojson';
 import { useSearch } from '@/hooks/useSearch';
 import { useMapStore } from '@/store/mapStore';
+import { useRouteStore } from '@/store/routeStore';
 import { countries } from '@/config/countries';
 
 function featureBbox(feature: Feature): [number, number, number, number] {
@@ -30,6 +31,43 @@ function featureBbox(feature: Feature): [number, number, number, number] {
   return [minLng, minLat, maxLng, maxLat];
 }
 
+interface GeoResult {
+  type: 'geo';
+  name: string;
+  displayName: string;
+  lat: number;
+  lng: number;
+}
+
+interface PlzResult {
+  type: 'plz';
+  plz: string;
+  name?: string;
+  feature: Feature;
+}
+
+type SearchResultItem = PlzResult | GeoResult;
+
+async function geocodeSearch(query: string): Promise<GeoResult[]> {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&viewbox=-10,35,30,60&bounded=0&addressdetails=1`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'DispatchMap/1.0' },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.map((item: { display_name: string; name: string; lat: string; lon: string }) => ({
+      type: 'geo' as const,
+      name: item.name || item.display_name.split(',')[0],
+      displayName: item.display_name,
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 interface SearchBarProps {
   detailData: FeatureCollection | null;
 }
@@ -37,50 +75,109 @@ interface SearchBarProps {
 export function SearchBar({ detailData }: SearchBarProps) {
   const activeCountry = useMapStore((s) => s.activeCountry);
   const setHighlightedPlz = useMapStore((s) => s.setHighlightedPlz);
+  const activeRouteId = useRouteStore((s) => s.activeRouteId);
+  const addWaypoint = useRouteStore((s) => s.addWaypoint);
   const config = countries[activeCountry];
-  const { query, setQuery, results, clear } = useSearch(
+  const { query, setQuery, results: plzResults, clear } = useSearch(
     detailData,
     config.detailPropertyKey
   );
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const geoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setOpen(results.length > 0);
-    setSelectedIndex(0);
-  }, [results]);
+  const allResults: SearchResultItem[] = [
+    ...plzResults.map((r) => ({ type: 'plz' as const, ...r })),
+    ...geoResults,
+  ];
 
-  const flyTo = useCallback(
+  useEffect(() => {
+    setSelectedIndex(0);
+    if (plzResults.length > 0) {
+      setOpen(true);
+      setGeoResults([]);
+      return;
+    }
+
+    if (geoTimerRef.current) clearTimeout(geoTimerRef.current);
+
+    if (!query || query.length < 3) {
+      setGeoResults([]);
+      setOpen(false);
+      return;
+    }
+
+    setGeoLoading(true);
+    geoTimerRef.current = setTimeout(async () => {
+      const results = await geocodeSearch(query);
+      setGeoResults(results);
+      setGeoLoading(results.length === 0 && false);
+      setOpen(results.length > 0);
+      setGeoLoading(false);
+    }, 500);
+
+    return () => {
+      if (geoTimerRef.current) clearTimeout(geoTimerRef.current);
+    };
+  }, [query, plzResults]);
+
+  const flyToFeature = useCallback(
     (plz: string, feature: GeoJSON.Feature) => {
       setHighlightedPlz(plz);
       setTimeout(() => setHighlightedPlz(null), 2000);
-
       const bbox = featureBbox(feature);
-      const event = new CustomEvent('map:flyto', {
-        detail: { bbox, plz },
-      });
-      window.dispatchEvent(event);
+      window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox, plz } }));
+      clear();
+      setOpen(false);
+      setGeoResults([]);
+    },
+    [setHighlightedPlz, clear]
+  );
+
+  const flyToGeo = useCallback(
+    (result: GeoResult) => {
+      const pad = 0.02;
+      const bbox = [result.lng - pad, result.lat - pad, result.lng + pad, result.lat + pad];
+      window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox } }));
+
+      if (activeRouteId) {
+        addWaypoint(activeRouteId, [result.lng, result.lat]);
+      }
 
       clear();
       setOpen(false);
+      setGeoResults([]);
     },
-    [setHighlightedPlz, clear]
+    [activeRouteId, addWaypoint, clear]
+  );
+
+  const selectResult = useCallback(
+    (item: SearchResultItem) => {
+      if (item.type === 'plz') {
+        flyToFeature(item.plz, item.feature);
+      } else {
+        flyToGeo(item);
+      }
+    },
+    [flyToFeature, flyToGeo]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
+      setSelectedIndex((i) => Math.min(i + 1, allResults.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter' && results[selectedIndex]) {
-      const r = results[selectedIndex];
-      flyTo(r.plz, r.feature);
+    } else if (e.key === 'Enter' && allResults[selectedIndex]) {
+      selectResult(allResults[selectedIndex]);
     } else if (e.key === 'Escape') {
       setOpen(false);
       clear();
+      setGeoResults([]);
     }
   };
 
@@ -92,36 +189,61 @@ export function SearchBar({ detailData }: SearchBarProps) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder="Search postal code..."
+        onFocus={() => allResults.length > 0 && setOpen(true)}
+        placeholder="Search postal code or place..."
         className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
       />
-      {query && (
+      {(query || geoLoading) && (
         <button
           onClick={() => {
             clear();
             setOpen(false);
+            setGeoResults([]);
           }}
           className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          {geoLoading ? (
+            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
         </button>
       )}
-      {open && results.length > 0 && (
+      {open && allResults.length > 0 && (
         <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
-          {results.map((r, i) => (
-            <li key={r.plz}>
+          {allResults.map((r, i) => (
+            <li key={r.type === 'plz' ? `plz-${r.plz}` : `geo-${i}`}>
               <button
-                onClick={() => flyTo(r.plz, r.feature)}
+                onClick={() => selectResult(r)}
                 className={`w-full px-3 py-2 text-left text-sm hover:bg-blue-50 dark:hover:bg-gray-700 ${
                   i === selectedIndex ? 'bg-blue-50 dark:bg-gray-700' : ''
                 }`}
               >
-                <span className="font-medium dark:text-gray-200">{r.plz}</span>
-                {r.name && (
-                  <span className="ml-2 text-gray-500 dark:text-gray-400">{r.name}</span>
+                {r.type === 'plz' ? (
+                  <>
+                    <span className="font-medium dark:text-gray-200">{r.plz}</span>
+                    {r.name && (
+                      <span className="ml-2 text-gray-500 dark:text-gray-400">{r.name}</span>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <svg className="h-3.5 w-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div className="min-w-0">
+                      <span className="font-medium dark:text-gray-200">{r.name}</span>
+                      <span className="ml-1 text-xs text-gray-400 dark:text-gray-500 truncate block">
+                        {r.displayName.split(',').slice(1, 3).join(',')}
+                      </span>
+                    </div>
+                  </div>
                 )}
               </button>
             </li>
