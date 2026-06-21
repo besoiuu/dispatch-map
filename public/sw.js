@@ -1,4 +1,4 @@
-const CACHE = 'dispatch-v3';
+const CACHE = 'dispatch-v4';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -16,13 +16,14 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // GeoJSON: use version query param as cache key, network-first to pick up updates
+  // GeoJSON: network-first, cache clone for offline fallback
   if (url.pathname.startsWith('/data/') && url.pathname.endsWith('.geojson')) {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
           if (res.ok) {
-            caches.open(CACHE).then((cache) => cache.put(e.request, res.clone()));
+            const clone = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(e.request, clone));
           }
           return res;
         })
