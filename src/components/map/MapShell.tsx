@@ -108,8 +108,8 @@ export function MapShell() {
   }, []);
 
   return (
-    <div className="flex h-full w-full flex-col md:flex-row">
-      <div className="relative flex-1 min-h-0">
+    <div className="relative h-full w-full">
+      <div className="absolute inset-0">
         <MapView detailDataMap={detailDataMap} overviewDataMap={overviewDataMap} />
         <ZoomPills />
         {loading && (
@@ -135,25 +135,26 @@ export function MapShell() {
           </svg>
         </button>
       </div>
+      {/* Desktop collapse toggle */}
+      <button
+        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+        className="cursor-pointer hidden md:flex fixed top-1/2 -translate-y-1/2 z-40 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors shadow-sm"
+        style={{ right: sidebarCollapsed ? 0 : 'var(--sidebar-width)' }}
+        title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+        aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+      >
+        <svg className={`h-3 w-3 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
       <div
         className={`
-          md:relative md:h-full md:w-(--sidebar-width) md:block
-          fixed inset-x-0 bottom-0 z-30 transition-all duration-200 ease-out will-change-transform
+          md:fixed md:top-0 md:right-0 md:left-auto md:bottom-auto md:h-full md:w-(--sidebar-width)
+          fixed inset-x-0 bottom-0 z-30 transition-transform duration-200 ease-out
           ${mobileOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
-          ${sidebarCollapsed ? 'md:translate-x-full md:-mr-(--sidebar-width)' : 'md:translate-x-0 md:mr-0'}
+          ${sidebarCollapsed ? 'md:translate-x-full' : 'md:translate-x-0'}
         `}
       >
-        {/* Desktop collapse toggle */}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="cursor-pointer hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors shadow-sm"
-          title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-          aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-        >
-          <svg className={`h-3 w-3 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
         <div className="h-[60vh] md:h-full">
           <div
             onTouchStart={handleSwipeStart}

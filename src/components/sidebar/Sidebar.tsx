@@ -62,7 +62,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
   const hasRoutes = routes.length > 0;
 
   return (
-    <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full md:w-(--sidebar-width) flex-col border-l-0 md:border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full flex-col border-l-0 md:border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="border-b border-gray-200 px-3 py-2 dark:border-gray-700">
         <div className="flex flex-wrap items-center justify-between gap-1">
           <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100">Dispatch Map</h1>
