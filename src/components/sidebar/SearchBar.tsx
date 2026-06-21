@@ -144,7 +144,9 @@ export function SearchBar({ detailData }: SearchBarProps) {
       window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox } }));
 
       if (activeRouteId) {
-        addWaypoint(activeRouteId, [result.lng, result.lat]);
+        const area = result.displayName.split(',').slice(1, 3).map(s => s.trim()).join(', ');
+        const label = area ? `${result.name}, ${area}` : result.name;
+        addWaypoint(activeRouteId, [result.lng, result.lat], undefined, label);
       }
 
       clear();

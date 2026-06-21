@@ -29,7 +29,7 @@ interface RouteState {
   setStops: (id: string, stops: RouteStop[]) => void;
   reorderStop: (routeId: string, fromIndex: number, toIndex: number) => void;
   removeStop: (routeId: string, stopId: string) => void;
-  addWaypoint: (routeId: string, coordinate: [number, number], index?: number) => void;
+  addWaypoint: (routeId: string, coordinate: [number, number], index?: number, label?: string) => void;
 }
 
 export const useRouteStore = create<RouteState>()(
@@ -195,14 +195,14 @@ export const useRouteStore = create<RouteState>()(
           }),
         })),
 
-      addWaypoint: (routeId, coordinate, index) =>
+      addWaypoint: (routeId, coordinate, index, label) =>
         set((s) => ({
           routes: s.routes.map((r) => {
             if (r.id !== routeId) return r;
             const wp: RouteStop = {
               id: crypto.randomUUID(),
               type: 'waypoint',
-              label: `Waypoint`,
+              label: label || 'Waypoint',
               coordinate,
             };
             const stops = [...r.stops];
