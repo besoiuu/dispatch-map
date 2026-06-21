@@ -260,9 +260,9 @@ function CountryLayers({
             layout={{ visibility: vis }}
             paint={{
               'fill-extrusion-color': plz2FillColor as any,
-              'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 3, 80000, 6, 30000, 9, 5000] as any,
+              'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 3, 8000, 5, 4000, 7, 1500, 9, 200] as any,
               'fill-extrusion-base': 0,
-              'fill-extrusion-opacity': dark ? 0.7 : 0.6,
+              'fill-extrusion-opacity': dark ? 0.75 : 0.65,
             }} />
           <Layer id={`plz2-outline-${code}`} type="line" minzoom={0} maxzoom={threshold + 0.5}
             layout={{ visibility: vis }}
