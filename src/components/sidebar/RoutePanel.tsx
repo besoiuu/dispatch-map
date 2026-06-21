@@ -307,7 +307,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
               )}
               {stops.length >= 2 && (
                 <a
-                  href={buildGoogleMapsUrl(stops.map((s) => s.coordinate))}
+                  href={buildGoogleMapsUrl(stops.map((s) => ({ coordinate: s.coordinate, label: s.label })))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-green-600 hover:text-green-800 dark:text-green-400"

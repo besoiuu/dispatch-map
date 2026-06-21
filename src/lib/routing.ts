@@ -68,11 +68,19 @@ export function formatDistance(meters: number): string {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
-export function buildGoogleMapsUrl(coordinates: [number, number][]): string {
-  if (coordinates.length < 2) return '';
-  const origin = `${coordinates[0][1]},${coordinates[0][0]}`;
-  const dest = `${coordinates[coordinates.length - 1][1]},${coordinates[coordinates.length - 1][0]}`;
-  const waypoints = coordinates.slice(1, -1).map(([lng, lat]) => `${lat},${lng}`).join('|');
+export function buildGoogleMapsUrl(
+  stops: { coordinate: [number, number]; label?: string }[]
+): string {
+  if (stops.length < 2) return '';
+
+  const fmt = (s: { coordinate: [number, number]; label?: string }) => {
+    if (s.label) return encodeURIComponent(s.label);
+    return `${s.coordinate[1]},${s.coordinate[0]}`;
+  };
+
+  const origin = fmt(stops[0]);
+  const dest = fmt(stops[stops.length - 1]);
+  const waypoints = stops.slice(1, -1).map(fmt).join('|');
   let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
   if (waypoints) url += `&waypoints=${waypoints}`;
   return url;
