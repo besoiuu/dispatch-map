@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2563eb"/>
+  <g transform="translate(256,220)">
+    <path d="M0-120C-66.3-120-120-66.3-120 0C-120 80 0 180 0 180S120 80 120 0C120-66.3 66.3-120 0-120Z" fill="white" opacity="0.95"/>
+    <circle cx="0" cy="-5" r="45" fill="#2563eb"/>
+  </g>
+  <text x="256" y="460" text-anchor="middle" font-family="system-ui,sans-serif" font-size="80" font-weight="800" fill="white" opacity="0.9">DM</text>
+</svg>

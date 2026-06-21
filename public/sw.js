@@ -1,19 +1,13 @@
-const CACHE_NAME = 'dispatch-map-v1';
-const DATA_CACHE = 'dispatch-data-v1';
-
-const STATIC_ASSETS = ['/', '/favicon.ico'];
+const CACHE = 'dispatch-v2';
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== DATA_CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -22,14 +16,15 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  if (url.pathname.startsWith('/data/')) {
+  // Cache GeoJSON data files (cache-first, they rarely change)
+  if (url.pathname.startsWith('/data/') && url.pathname.endsWith('.geojson')) {
     e.respondWith(
-      caches.open(DATA_CACHE).then((cache) =>
+      caches.open(CACHE).then((cache) =>
         cache.match(e.request).then((cached) => {
           if (cached) return cached;
-          return fetch(e.request).then((response) => {
-            if (response.ok) cache.put(e.request, response.clone());
-            return response;
+          return fetch(e.request).then((res) => {
+            if (res.ok) cache.put(e.request, res.clone());
+            return res;
           });
         })
       )
@@ -37,7 +32,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
-  );
+  // Everything else: network-first
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });

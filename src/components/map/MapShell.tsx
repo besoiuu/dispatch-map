@@ -36,13 +36,8 @@ export function MapShell() {
   }, [dark]);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => {
-        for (const r of regs) r.unregister();
-      });
-      caches.keys().then((keys) => {
-        for (const k of keys) caches.delete(k);
-      });
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   }, []);
 
