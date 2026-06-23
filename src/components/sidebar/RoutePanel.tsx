@@ -126,9 +126,11 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
   };
 
   const stops = buildStopsFromPlz(route.plzCodes, route.stops, detailData);
-  if (isActive && stops.length !== route.stops.length) {
-    setTimeout(() => setStops(route.id, stops), 0);
-  }
+
+  const stopsNeedSync = isActive && stops.length !== route.stops.length;
+  useEffect(() => {
+    if (stopsNeedSync) setStops(route.id, stops);
+  }, [stopsNeedSync, route.id, stops, setStops]);
 
   const stopsKey = stops.map((s) => `${s.id}:${s.coordinate}`).join('|');
 
