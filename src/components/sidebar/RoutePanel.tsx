@@ -124,7 +124,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
   };
 
   const handleExportCSV = () => {
-    const csv = routeToCSV(route);
+    const csv = routeToCSV(route, stops);
     downloadCSV(csv, `${route.name.replace(/\s+/g, '_')}.csv`);
     addToast('CSV file downloaded');
   };
@@ -154,6 +154,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
   const doOptimize = useCallback(async () => {
     if (stops.length < 3) return;
     const coords = stops.map((s) => s.coordinate);
+    const prevDistance = route.geometry?.distance ?? 0;
     setRouteCalculating(route.id, true);
     try {
       const result = await calculateTrip(coords);
@@ -161,16 +162,17 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
         const { geometry, waypointOrder } = result;
         const reordered = waypointOrder.map((i: number) => stops[i]);
         const plzCodes = reordered.filter((s) => s.plz).map((s) => s.plz!);
-        setStops(route.id, reordered);
-        useRouteStore.getState().restoreRouteStops(route.id, plzCodes, reordered);
-        setRouteGeometry(route.id, geometry);
-        addToast(`Route optimized — saved ${formatDistance((route.geometry?.distance ?? geometry.distance) - geometry.distance)}`);
+        useRouteStore.getState().restoreRouteStops(route.id, plzCodes, reordered, geometry);
+        const saved = prevDistance - geometry.distance;
+        addToast(saved > 0 ? `Optimized — saved ${formatDistance(saved)}` : 'Route optimized');
+      } else {
+        addToast('Could not optimize this route', 'info');
       }
     } catch {
       addToast('Optimization failed', 'error');
     }
     setRouteCalculating(route.id, false);
-  }, [route.id, route.geometry?.distance, stops, setStops, setRouteGeometry, setRouteCalculating, addToast]);
+  }, [route.id, route.geometry?.distance, stops, setRouteGeometry, setRouteCalculating, addToast]);
 
   // Auto-calculate when stops change
   useEffect(() => {

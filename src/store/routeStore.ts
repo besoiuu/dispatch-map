@@ -31,7 +31,7 @@ interface RouteState {
   removeStop: (routeId: string, stopId: string) => void;
   addWaypoint: (routeId: string, coordinate: [number, number], index?: number, label?: string) => void;
   restoreRoute: (route: Route, index: number) => void;
-  restoreRouteStops: (id: string, plzCodes: string[], stops: RouteStop[]) => void;
+  restoreRouteStops: (id: string, plzCodes: string[], stops: RouteStop[], geometry?: RouteGeometry) => void;
 }
 
 export const useRouteStore = create<RouteState>()(
@@ -227,10 +227,10 @@ export const useRouteStore = create<RouteState>()(
           return { routes, activeRouteId: route.id };
         }),
 
-      restoreRouteStops: (id, plzCodes, stops) =>
+      restoreRouteStops: (id, plzCodes, stops, geometry) =>
         set((s) => ({
           routes: s.routes.map((r) =>
-            r.id === id ? { ...r, plzCodes, stops, geometry: undefined } : r
+            r.id === id ? { ...r, plzCodes, stops, geometry: geometry ?? undefined } : r
           ),
         })),
     }),

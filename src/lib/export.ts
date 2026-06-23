@@ -1,10 +1,24 @@
 import type { Route, RouteStop } from '@/types/route';
 import { formatDistance, formatDuration } from './routing';
 
-export function routeToCSV(route: Route): string {
-  const lines = ['Postal Code'];
-  for (const plz of route.plzCodes) {
-    lines.push(plz);
+export function routeToCSV(route: Route, stops: RouteStop[]): string {
+  const lines = ['Stop,Postal Code,Name,Country,Latitude,Longitude,Distance,Duration'];
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let i = 0; i < stops.length; i++) {
+    const s = stops[i];
+    const plzParts = s.plz?.includes(':') ? s.plz.split(':') : ['', s.plz ?? ''];
+    const country = plzParts[0].toUpperCase();
+    const code = plzParts.length > 1 ? plzParts[1] : plzParts[0];
+    const name = (s.label || '').replace(/,/g, ' ');
+    const lat = s.coordinate?.[1]?.toFixed(5) ?? '';
+    const lng = s.coordinate?.[0]?.toFixed(5) ?? '';
+    const leg = route.geometry?.legs?.[i];
+    const dist = leg && i < stops.length - 1 ? formatDistance(leg.distance) : '';
+    const dur = leg && i < stops.length - 1 ? formatDuration(leg.duration) : '';
+    lines.push(`${letters[i] ?? i + 1},${code},${name},${country},${lat},${lng},${dist},${dur}`);
+  }
+  if (route.geometry) {
+    lines.push(`,,TOTAL,,,${formatDistance(route.geometry.distance)},${formatDuration(route.geometry.duration)}`);
   }
   return lines.join('\n');
 }
