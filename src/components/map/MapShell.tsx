@@ -155,7 +155,7 @@ export function MapShell() {
           ${sidebarCollapsed ? 'md:translate-x-full' : 'md:translate-x-0'}
         `}
       >
-        <div className="h-[60vh] md:h-full">
+        <div className="h-[80vh] md:h-full">
           <div
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}

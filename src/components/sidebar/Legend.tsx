@@ -89,7 +89,10 @@ const CountrySection = memo(function CountrySection({ code, data, isCollapsed, o
 
 export function Legend() {
   const overviewDataMap = useMapStore((s) => s.overviewData);
-  const [sectionOpen, setSectionOpen] = useState(true);
+  const [sectionOpen, setSectionOpen] = useState(() => {
+    if (typeof window !== 'undefined') return window.innerWidth >= 768;
+    return true;
+  });
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(
     () => Object.fromEntries(enabledCountries.map((c) => [c, true]))
   );

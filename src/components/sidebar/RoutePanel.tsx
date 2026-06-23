@@ -105,8 +105,9 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
   const addToast = useToastStore((s) => s.addToast);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(route.name);
-  const dragItem = useRef<number | null>(null);
-  const dragOver = useRef<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const handleRename = () => {
     if (editName.trim()) renameRoute(route.id, editName.trim());
@@ -153,26 +154,45 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopsKey, isActive]);
 
-  const handleDragStart = (index: number) => {
-    dragItem.current = index;
-  };
+  const handlePointerDown = (index: number, e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    setDragIdx(index);
+    setDropIdx(index);
 
-  const handleDragEnter = (index: number) => {
-    dragOver.current = index;
-  };
+    const listEl = listRef.current;
+    if (!listEl) return;
+    const items = Array.from(listEl.querySelectorAll<HTMLElement>('[data-stop-idx]'));
 
-  const handleDragEnd = () => {
-    if (dragItem.current !== null && dragOver.current !== null && dragItem.current !== dragOver.current) {
-      reorderStop(route.id, dragItem.current, dragOver.current);
-    }
-    dragItem.current = null;
-    dragOver.current = null;
-  };
+    const onMove = (me: PointerEvent) => {
+      const y = me.clientY;
+      let closest = index;
+      let minDist = Infinity;
+      items.forEach((el, i) => {
+        const rect = el.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const dist = Math.abs(y - mid);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      });
+      setDropIdx(closest);
+    };
 
-  const moveStop = (index: number, dir: -1 | 1) => {
-    const to = index + dir;
-    if (to < 0 || to >= stops.length) return;
-    reorderStop(route.id, index, to);
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      setDragIdx((prev) => {
+        setDropIdx((drop) => {
+          if (prev !== null && drop !== null && prev !== drop) {
+            reorderStop(route.id, prev, drop);
+          }
+          return null;
+        });
+        return null;
+      });
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   };
 
   const stopLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -242,16 +262,18 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
       {/* Stop list */}
       {stops.length > 0 && (
         <div className="border-t border-gray-200 dark:border-gray-700">
-          <div className="max-h-48 overflow-y-auto">
+          <div ref={listRef} className="max-h-48 overflow-y-auto">
           {stops.map((stop, i) => (
             <div key={stop.id}>
+              {dragIdx !== null && dropIdx === i && dropIdx < dragIdx && (
+                <div className="h-0.5 mx-3 rounded-full" style={{ backgroundColor: route.color }} />
+              )}
               <div
-                draggable
-                onDragStart={() => handleDragStart(i)}
-                onDragEnter={() => handleDragEnter(i)}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => e.preventDefault()}
-                className="flex items-center gap-2 px-3 py-2 group cursor-grab active:cursor-grabbing hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                data-stop-idx={i}
+                onPointerDown={(e) => handlePointerDown(i, e)}
+                className={`flex items-center gap-2 px-3 py-2 group cursor-grab active:cursor-grabbing select-none touch-none ${
+                  dragIdx === i ? 'opacity-40' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                }`}
               >
                 <div
                   className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
@@ -285,7 +307,10 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
                 </button>
               </div>
 
-              {i < stops.length - 1 && (
+              {dragIdx !== null && dropIdx === i && dropIdx > dragIdx && (
+                <div className="h-0.5 mx-3 rounded-full" style={{ backgroundColor: route.color }} />
+              )}
+              {dragIdx === null && i < stops.length - 1 && (
                 <div className="ml-[1.65rem] border-l-2 h-1" style={{ borderColor: route.color + '30' }} />
               )}
             </div>
