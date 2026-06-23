@@ -16,6 +16,11 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
+  // PMTiles: don't intercept — Range requests need direct access
+  if (url.pathname.startsWith('/tiles/') && url.pathname.endsWith('.pmtiles')) {
+    return;
+  }
+
   // GeoJSON: stale-while-revalidate — serve cache instantly, update in background
   if (url.pathname.startsWith('/data/') && url.pathname.endsWith('.geojson')) {
     e.respondWith(

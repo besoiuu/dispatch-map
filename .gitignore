@@ -48,3 +48,7 @@ next-env.d.ts
 # tool artifacts
 .mcp.json
 .playwright-mcp/
+scripts/bin/
+
+# generated tiles
+public/tiles/

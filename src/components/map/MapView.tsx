@@ -15,18 +15,22 @@ import { useRouteStore } from '@/store/routeStore';
 import { useThemeStore } from '@/store/themeStore';
 import { loadDetailForCountries, getVisibleCountries } from '@/hooks/useMapData';
 import { PlzLayers } from './PlzLayers';
+import { PlzLayersPMTiles } from './PlzLayersPMTiles';
 import { MapTooltip } from './MapTooltip';
 import dynamic from 'next/dynamic';
 import type { ContextMenuState } from './ContextMenu';
+import type { TileMetadata } from '@/hooks/useTileMetadata';
 
 const ContextMenu = dynamic(() => import('./ContextMenu').then((m) => m.ContextMenu), { ssr: false });
 
 interface MapViewProps {
   detailDataMap: Partial<Record<CountryCode, FeatureCollection>>;
   overviewDataMap: Partial<Record<CountryCode, FeatureCollection>>;
+  usePMTiles?: boolean;
+  tileMetadata?: TileMetadata | null;
 }
 
-export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
+export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetadata }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
   const activeCountry = useMapStore((s) => s.activeCountry);
   const setZoom = useMapStore((s) => s.setZoom);
@@ -203,10 +207,10 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
       zoom
     );
-    if (visible.length > 0) {
+    if (!usePMTiles && visible.length > 0) {
       loadDetailForCountries(visible);
     }
-  }, [setZoom]);
+  }, [setZoom, usePMTiles]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -341,11 +345,18 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       })}
     >
       <NavigationControl position="top-left" />
-      <PlzLayers
-        detailDataMap={detailDataMap}
-        overviewDataMap={overviewDataMap}
-        highlightedPlz={highlightedPlz}
-      />
+      {usePMTiles && tileMetadata ? (
+        <PlzLayersPMTiles
+          tileMetadata={tileMetadata}
+          highlightedPlz={highlightedPlz}
+        />
+      ) : (
+        <PlzLayers
+          detailDataMap={detailDataMap}
+          overviewDataMap={overviewDataMap}
+          highlightedPlz={highlightedPlz}
+        />
+      )}
       <MapTooltip />
       {contextMenu && (
         <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "preprocess": "tsx scripts/preprocess.ts",
-    "preprocess:de": "tsx scripts/preprocess.ts --country de"
+    "preprocess:de": "tsx scripts/preprocess.ts --country de",
+    "generate-tiles": "tsx scripts/generate-tiles.ts"
   },
   "dependencies": {
     "maplibre-gl": "^5.24.0",
@@ -21,10 +22,12 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@turf/turf": "^7.3.5",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-sqlite3": "^12.11.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "geojson-vt": "^4.0.3",

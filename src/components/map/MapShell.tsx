@@ -13,10 +13,16 @@ import { ToastContainer } from '../ui/Toast';
 import { MobileHint } from '../ui/MobileHint';
 import { enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
+import { ensurePMTilesProtocol } from '@/lib/pmtiles-protocol';
+import { useTileMetadata } from '@/hooks/useTileMetadata';
+
+const USE_PMTILES = process.env.NEXT_PUBLIC_USE_PMTILES === 'true';
 
 export function MapShell() {
+  if (USE_PMTILES) ensurePMTilesProtocol();
+  const tileMetadata = USE_PMTILES ? useTileMetadata() : null;
   const { detailDataMap, overviewDataMap } = useMapData();
-  const loading = useMapStore((s) => s.loading);
+  const loading = USE_PMTILES ? false : useMapStore((s) => s.loading);
   const dark = useThemeStore((s) => s.dark);
   const colorBlind = useThemeStore((s) => s.colorBlind);
 
@@ -136,7 +142,7 @@ export function MapShell() {
   return (
     <div className="relative h-full w-full">
       <div className="absolute inset-0">
-        <MapView detailDataMap={detailDataMap} overviewDataMap={overviewDataMap} />
+        <MapView detailDataMap={detailDataMap} overviewDataMap={overviewDataMap} usePMTiles={USE_PMTILES} tileMetadata={tileMetadata} />
         <ZoomPills />
         {loading && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 rounded-lg bg-white/90 px-4 py-2 text-sm text-gray-600 shadow-lg backdrop-blur-sm dark:bg-gray-800/90 dark:text-gray-300 flex items-center gap-2">
