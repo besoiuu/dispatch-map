@@ -36,7 +36,7 @@ export async function calculateTrip(
   if (coordinates.length < 3) return null;
 
   const coordStr = coordinates.map(([lng, lat]) => `${lng},${lat}`).join(';');
-  const url = `${OSRM_BASE}/trip/v1/driving/${coordStr}?overview=full&geometries=geojson&roundtrip=true&source=first`;
+  const url = `${OSRM_BASE}/trip/v1/driving/${coordStr}?overview=full&geometries=geojson&roundtrip=false&source=first&destination=last`;
 
   const res = await fetch(url);
   if (!res.ok) return null;

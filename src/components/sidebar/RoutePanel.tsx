@@ -5,8 +5,8 @@ import type { Route, RouteStop } from '@/types/route';
 import type { FeatureCollection } from 'geojson';
 import { useRouteStore } from '@/store/routeStore';
 import { useToastStore } from '@/store/toastStore';
-import { routeToCSV, downloadCSV, copyRouteAsText } from '@/lib/export';
-import { calculateRoute, formatDistance, formatDuration, buildGoogleMapsUrl } from '@/lib/routing';
+import { routeToCSV, downloadCSV, copyRouteAsText, printRoute } from '@/lib/export';
+import { calculateRoute, calculateTrip, formatDistance, formatDuration, buildGoogleMapsUrl } from '@/lib/routing';
 
 function parsePlz(prefixedPlz: string): { country: string; code: string } {
   if (prefixedPlz.includes(':')) {
@@ -150,6 +150,27 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
     }
     setRouteCalculating(route.id, false);
   }, [route.id, stops, setRouteGeometry, setRouteCalculating]);
+
+  const doOptimize = useCallback(async () => {
+    if (stops.length < 3) return;
+    const coords = stops.map((s) => s.coordinate);
+    setRouteCalculating(route.id, true);
+    try {
+      const result = await calculateTrip(coords);
+      if (result) {
+        const { geometry, waypointOrder } = result;
+        const reordered = waypointOrder.map((i: number) => stops[i]);
+        const plzCodes = reordered.filter((s) => s.plz).map((s) => s.plz!);
+        setStops(route.id, reordered);
+        useRouteStore.getState().restoreRouteStops(route.id, plzCodes, reordered);
+        setRouteGeometry(route.id, geometry);
+        addToast(`Route optimized — saved ${formatDistance((route.geometry?.distance ?? geometry.distance) - geometry.distance)}`);
+      }
+    } catch {
+      addToast('Optimization failed', 'error');
+    }
+    setRouteCalculating(route.id, false);
+  }, [route.id, route.geometry?.distance, stops, setStops, setRouteGeometry, setRouteCalculating, addToast]);
 
   // Auto-calculate when stops change
   useEffect(() => {
@@ -345,6 +366,9 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
               {route.geometry && (
                 <button onClick={doCalculate} className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 transition-colors rounded px-1.5 py-0.5 hover:bg-blue-50 dark:hover:bg-blue-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Recalculate</button>
               )}
+              {stops.length >= 3 && (
+                <button onClick={doOptimize} className="cursor-pointer text-xs text-orange-600 hover:text-orange-800 dark:text-orange-400 transition-colors rounded px-1.5 py-0.5 hover:bg-orange-50 dark:hover:bg-orange-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Optimize</button>
+              )}
               {stops.length >= 2 && (
                 <a
                   href={buildGoogleMapsUrl(stops.map((s) => ({ coordinate: s.coordinate, label: s.label })))}
@@ -357,7 +381,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
               )}
               <button
                 onClick={() => {
-                  const codes = stops.map(s => s.plz ?? s.label).join(',');
+                  const codes = stops.map(s => s.plz ?? `@${s.coordinate[1].toFixed(5)},${s.coordinate[0].toFixed(5)}`).join(',');
                   const url = `${window.location.origin}/#route=${encodeURIComponent(route.name)}:${codes}`;
                   navigator.clipboard.writeText(url);
                   addToast('Share link copied to clipboard');
@@ -366,6 +390,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
               >Share Link</button>
               <button onClick={handleCopy} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Copy</button>
               <button onClick={handleExportCSV} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">CSV</button>
+              <button onClick={() => printRoute(route, stops)} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">PDF</button>
               <button onClick={() => {
                 const savedCodes = [...route.plzCodes];
                 const savedStops = [...route.stops];

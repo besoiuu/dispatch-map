@@ -72,6 +72,32 @@ export function MapShell() {
           }
         }
       }
+      const routeParam = params.get('route');
+      if (routeParam) {
+        const colonIdx = routeParam.indexOf(':');
+        if (colonIdx > 0) {
+          const name = decodeURIComponent(routeParam.slice(0, colonIdx));
+          const codes = routeParam.slice(colonIdx + 1).split(',').filter(Boolean);
+          if (codes.length > 0) {
+            const store = useRouteStore.getState();
+            const existing = store.routes.find((r) => r.name === name);
+            if (!existing) {
+              store.addRoute(name);
+              for (const code of codes) {
+                if (code.startsWith('@')) {
+                  const [lat, lng] = code.slice(1).split(',').map(Number);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    const rid = useRouteStore.getState().activeRouteId;
+                    if (rid) store.addWaypoint(rid, [lng, lat]);
+                  }
+                } else {
+                  store.addPlzToActiveRoute(code);
+                }
+              }
+            }
+          }
+        }
+      }
     } catch {}
   }, []);
 

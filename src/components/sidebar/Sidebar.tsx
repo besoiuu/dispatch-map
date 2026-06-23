@@ -10,6 +10,7 @@ import { CountrySelector } from '../country/CountrySelector';
 import dynamic from 'next/dynamic';
 
 const HelpPanel = dynamic(() => import('../ui/HelpPanel').then((m) => m.HelpPanel), { ssr: false });
+import { InstallPrompt } from '../ui/InstallPrompt';
 import { useMapStore } from '@/store/mapStore';
 import { useThemeStore } from '@/store/themeStore';
 import { useRouteStore } from '@/store/routeStore';
@@ -126,6 +127,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
           </div>
         </>
       )}
+      <InstallPrompt />
       <div className="border-t border-gray-200 px-3 py-2 text-center dark:border-gray-700">
         <a
           href="https://revolut.me/besoiu"
