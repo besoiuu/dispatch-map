@@ -122,7 +122,7 @@ function writeMBTiles(
         }
 
         if (hasData) {
-          const pbf = vtpbf.fromGeojsonVt(layerData);
+          const pbf = vtpbf.fromGeojsonVt(layerData, { version: 2 });
           const tmsY = (1 << z) - 1 - y;
           tileBatch.push({ z, x, y: tmsY, data: Buffer.from(pbf) });
         }
