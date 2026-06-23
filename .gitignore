@@ -52,5 +52,5 @@ next-env.d.ts
 .playwright-mcp/
 scripts/bin/
 
-# generated tiles (keep metadata.json and .pmtiles in git for Vercel)
-# public/tiles/
+# intermediate tile files
+*.mbtiles
