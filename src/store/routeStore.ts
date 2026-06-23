@@ -175,9 +175,12 @@ export const useRouteStore = create<RouteState>()(
           routes: s.routes.map((r) => {
             if (r.id !== routeId) return r;
             const stops = [...r.stops];
-            const [moved] = stops.splice(fromIndex, 1);
-            stops.splice(toIndex, 0, moved);
-            return { ...r, stops, geometry: undefined };
+            const [movedStop] = stops.splice(fromIndex, 1);
+            stops.splice(toIndex, 0, movedStop);
+            const plzCodes = stops
+              .filter((st) => st.plz)
+              .map((st) => st.plz!);
+            return { ...r, stops, plzCodes, geometry: undefined };
           }),
         })),
 

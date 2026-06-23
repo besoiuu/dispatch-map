@@ -59,6 +59,10 @@ function buildStopsFromPlz(
   existingStops: RouteStop[],
   data: FeatureCollection | null
 ): RouteStop[] {
+  const existingPlzSet = new Set(existingStops.filter(s => s.plz).map(s => s.plz!));
+  const allResolved = plzCodes.every((plz) => existingPlzSet.has(plz));
+  if (allResolved && existingStops.length > 0) return existingStops;
+
   const stops: RouteStop[] = [];
   const existingMap = new Map(existingStops.map((s) => [s.plz ?? s.id, s]));
 
