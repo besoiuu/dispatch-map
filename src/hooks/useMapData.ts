@@ -6,7 +6,7 @@ import { countries, enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
 import type { FeatureCollection } from 'geojson';
 
-const DATA_VERSION = 17;
+const DATA_VERSION = 19;
 
 const DETAIL_PREFETCH_ZOOM = 7;
 
