@@ -6,6 +6,7 @@ import type { FeatureCollection, Feature } from 'geojson';
 interface SearchResult {
   plz: string;
   name?: string;
+  country?: string;
   feature: Feature;
 }
 
@@ -20,6 +21,7 @@ export function useSearch(
     return data.features.map((f) => ({
       plz: String(f.properties?.[propertyKey] ?? ''),
       name: f.properties?.name as string | undefined,
+      country: (f.properties?._country as string | undefined)?.toUpperCase(),
       feature: f,
     }));
   }, [data, propertyKey]);

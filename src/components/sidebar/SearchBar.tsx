@@ -44,6 +44,7 @@ interface PlzResult {
   type: 'plz';
   plz: string;
   name?: string;
+  country?: string;
   feature: Feature;
 }
 
@@ -246,12 +247,15 @@ export function SearchBar({ detailData }: SearchBarProps) {
                 }`}
               >
                 {r.type === 'plz' ? (
-                  <>
+                  <div className="flex items-center gap-2">
+                    {r.country && (
+                      <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded px-1 py-0.5 shrink-0">{r.country}</span>
+                    )}
                     <span className="font-medium dark:text-gray-200">{r.plz}</span>
                     {r.name && (
-                      <span className="ml-2 text-gray-500 dark:text-gray-400">{r.name}</span>
+                      <span className="text-gray-500 dark:text-gray-400 truncate">{r.name}</span>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <svg className="h-3.5 w-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
