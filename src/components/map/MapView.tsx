@@ -152,10 +152,11 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
   }, []);
 
   const throttleRef = useRef(0);
+  const lastHoverId = useRef<string | null>(null);
   const handleMouseMove = useCallback(
     (e: MapLayerMouseEvent) => {
       const now = performance.now();
-      if (now - throttleRef.current < 30) return;
+      if (now - throttleRef.current < 16) return;
       throttleRef.current = now;
 
       const map = mapRef.current?.getMap();
@@ -179,11 +180,42 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
           zoom >= config.overviewZoomThreshold
             ? config.detailPropertyKey
             : config.overviewPropertyKey;
+        const featureId = String(features[0].properties?.[key] ?? '');
         const featureName = String(features[0].properties?.name ?? features[0].properties?.label ?? '');
-        setHoveredFeatureId(String(features[0].properties?.[key] ?? ''), featureName, country.toUpperCase());
+
+        if (featureId !== lastHoverId.current) {
+          lastHoverId.current = featureId;
+          const dpk = config.detailPropertyKey;
+          const plz2 = featureId.length >= 2 ? featureId.slice(0, 2) : null;
+          for (const c of enabledCountries) {
+            const hoverLayer = `plz5-hover-${c}`;
+            const neighborLayer = `plz5-neighbor-${c}`;
+            if (map.getLayer(hoverLayer)) {
+              map.setFilter(hoverLayer, ['==', ['get', dpk], featureId]);
+            }
+            if (map.getLayer(neighborLayer)) {
+              map.setFilter(neighborLayer, plz2 ? ['==', ['get', 'plz2'], plz2] : ['==', ['get', 'plz2'], '']);
+            }
+          }
+          setHoveredFeatureId(featureId, featureName, country.toUpperCase());
+        }
       } else {
+        if (lastHoverId.current !== null) {
+          lastHoverId.current = null;
+          const dpk = config.detailPropertyKey;
+          for (const c of enabledCountries) {
+            const hoverLayer = `plz5-hover-${c}`;
+            const neighborLayer = `plz5-neighbor-${c}`;
+            if (map.getLayer(hoverLayer)) {
+              map.setFilter(hoverLayer, ['==', ['get', dpk], '']);
+            }
+            if (map.getLayer(neighborLayer)) {
+              map.setFilter(neighborLayer, ['==', ['get', 'plz2'], '']);
+            }
+          }
+          setHoveredFeatureId(null, null, null);
+        }
         map.getCanvas().style.cursor = '';
-        setHoveredFeatureId(null, null, null);
       }
     },
     [config, setHoveredFeatureId]
