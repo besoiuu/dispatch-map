@@ -225,10 +225,16 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
     const zoomHandler = (e: Event) => {
       const map = mapRef.current?.getMap();
       if (!map) return;
-      const { zoom: targetZoom } = (e as CustomEvent).detail;
-      if (targetZoom != null) {
-        map.easeTo({ zoom: targetZoom, duration: 600 });
+      const { zoom: targetZoom, center } = (e as CustomEvent).detail;
+      if (targetZoom == null) return;
+      const opts: { zoom: number; duration: number; center?: [number, number] } = { zoom: targetZoom, duration: 600 };
+      if (center && targetZoom >= 9) {
+        const mapCenter = map.getCenter();
+        const [cLng, cLat] = center;
+        const dist = Math.abs(mapCenter.lng - cLng) + Math.abs(mapCenter.lat - cLat);
+        if (dist > 3) opts.center = center;
       }
+      map.easeTo(opts);
     };
     window.addEventListener('map:setzoom', zoomHandler);
 
@@ -236,16 +242,26 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
     let panFrame = 0;
     const PAN_SPEED = 4;
     const PAN_MAX = 12;
+    const ROT_SPEED = 0.3;
+    const ROT_MAX = 2.0;
     let panVelocity = 0;
+    let rotVelocity = 0;
 
     const panLoop = () => {
       const map = mapRef.current?.getMap();
       if (!map || keysDown.size === 0) {
         panVelocity = 0;
+        rotVelocity = 0;
         panFrame = 0;
         return;
       }
-      panVelocity = Math.min(panVelocity + PAN_SPEED * 0.15, PAN_MAX);
+      const hasPan = keysDown.has('w') || keysDown.has('a') || keysDown.has('s') || keysDown.has('d');
+      const hasRot = keysDown.has('q') || keysDown.has('e');
+      if (hasPan) panVelocity = Math.min(panVelocity + PAN_SPEED * 0.15, PAN_MAX);
+      else panVelocity = 0;
+      if (hasRot) rotVelocity = Math.min(rotVelocity + ROT_SPEED * 0.15, ROT_MAX);
+      else rotVelocity = 0;
+
       let dx = 0, dy = 0;
       if (keysDown.has('w')) dy -= panVelocity;
       if (keysDown.has('s')) dy += panVelocity;
@@ -254,6 +270,12 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       if (dx !== 0 || dy !== 0) {
         map.panBy([dx, dy], { duration: 0 });
       }
+      if (keysDown.has('q')) {
+        map.setBearing(map.getBearing() - rotVelocity);
+      }
+      if (keysDown.has('e')) {
+        map.setBearing(map.getBearing() + rotVelocity);
+      }
       panFrame = requestAnimationFrame(panLoop);
     };
 
@@ -261,7 +283,7 @@ export function MapView({ detailDataMap, overviewDataMap }: MapViewProps) {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       const key = e.key.toLowerCase();
-      if (!['w', 'a', 's', 'd'].includes(key)) return;
+      if (!['w', 'a', 's', 'd', 'q', 'e'].includes(key)) return;
       e.preventDefault();
       if (keysDown.has(key)) return;
       keysDown.add(key);

@@ -7,6 +7,7 @@ const SHORTCUTS = [
   { keys: ['Right-click', 'Long-press'], desc: 'Add waypoint to active route' },
   { keys: ['Ctrl', 'Z'], desc: 'Undo last added stop' },
   { keys: ['W', 'A', 'S', 'D'], desc: 'Pan the map' },
+  { keys: ['Q', 'E'], desc: 'Rotate camera left / right' },
   { keys: ['Double-click'], desc: 'Rename a route' },
   { keys: ['Drag'], desc: 'Reorder stops in a route' },
   { keys: ['['], desc: 'Toggle sidebar' },
