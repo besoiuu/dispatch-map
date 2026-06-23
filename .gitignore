@@ -29,7 +29,9 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env*
+.env
+.env.local
+.env*.local
 
 # vercel
 .vercel
@@ -50,5 +52,5 @@ next-env.d.ts
 .playwright-mcp/
 scripts/bin/
 
-# generated tiles
-public/tiles/
+# generated tiles (keep metadata.json and .pmtiles in git for Vercel)
+# public/tiles/
