@@ -4,40 +4,35 @@ import { persist } from 'zustand/middleware';
 interface ThemeState {
   dark: boolean;
   colorBlind: boolean;
-  _initialized: boolean;
   toggle: () => void;
   toggleColorBlind: () => void;
-}
-
-function getSystemDark(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      dark: getSystemDark(),
+      dark: false,
       colorBlind: false,
-      _initialized: false,
       toggle: () => set((s) => ({ dark: !s.dark })),
       toggleColorBlind: () => set((s) => ({ colorBlind: !s.colorBlind })),
     }),
     {
       name: 'dispatch-theme-v1',
-      onRehydrateStorage: () => (state) => {
-        if (state) state._initialized = true;
-      },
       partialize: (state) => ({ dark: state.dark, colorBlind: state.colorBlind }),
     }
   )
 );
 
 if (typeof window !== 'undefined') {
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  mq.addEventListener('change', (e) => {
-    const stored = localStorage.getItem('dispatch-theme-v1');
-    if (!stored) {
+  const stored = localStorage.getItem('dispatch-theme-v1');
+  if (!stored) {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark) useThemeStore.setState({ dark: true });
+  }
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    const hasManualPref = localStorage.getItem('dispatch-theme-v1');
+    if (!hasManualPref) {
       useThemeStore.setState({ dark: e.matches });
     }
   });

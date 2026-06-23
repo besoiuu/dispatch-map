@@ -110,14 +110,27 @@ export function useMapData() {
 
     setLoading(true);
 
-    Promise.all(
-      toLoad.map(async (code) => {
+    const initialBounds = { west: -2, south: 44, east: 20, north: 56 };
+    const priority = toLoad.filter(code => {
+      const [w, s, e, n] = COUNTRY_BOUNDS[code];
+      return w <= initialBounds.east && e >= initialBounds.west &&
+             s <= initialBounds.north && n >= initialBounds.south;
+    });
+    const deferred = toLoad.filter(c => !priority.includes(c));
+
+    const loadBatch = async (codes: CountryCode[]) => {
+      await Promise.all(codes.map(async (code) => {
         const config = countries[code];
         const data = await fetchViaWorker(`${config.overviewPath}?v=${DATA_VERSION}`);
         useMapStore.getState().setOverviewData(code, data);
+      }));
+    };
+
+    loadBatch(priority)
+      .then(() => {
+        useMapStore.getState().setLoading(false);
+        if (deferred.length > 0) loadBatch(deferred);
       })
-    )
-      .then(() => useMapStore.getState().setLoading(false))
       .catch(err => {
         if (err.name !== 'AbortError') {
           console.error('Failed to load overview data:', err);

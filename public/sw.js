@@ -1,4 +1,4 @@
-const CACHE = 'dispatch-v5';
+const CACHE = 'dispatch-v6';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -16,18 +16,19 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // GeoJSON: network-first, cache clone for offline fallback
+  // GeoJSON: stale-while-revalidate — serve cache instantly, update in background
   if (url.pathname.startsWith('/data/') && url.pathname.endsWith('.geojson')) {
     e.respondWith(
-      fetch(e.request)
-        .then((res) => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE).then((cache) => cache.put(e.request, clone));
-          }
-          return res;
+      caches.open(CACHE).then((cache) =>
+        cache.match(e.request).then((cached) => {
+          const fetchPromise = fetch(e.request).then((res) => {
+            if (res.ok) cache.put(e.request, res.clone());
+            return res;
+          }).catch(() => cached);
+
+          return cached || fetchPromise;
         })
-        .catch(() => caches.match(e.request))
+      )
     );
     return;
   }
@@ -35,4 +36,3 @@ self.addEventListener('fetch', (e) => {
   // Everything else: network-first
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
-// deploy trigger 1782060879
