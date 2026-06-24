@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import type { FeatureCollection, Feature, Position } from 'geojson';
 import { useSearch } from '@/hooks/useSearch';
+import { useSearchIndex } from '@/hooks/useSearchIndex';
 import { useMapStore } from '@/store/mapStore';
 import { useRouteStore } from '@/store/routeStore';
 import { countries } from '@/config/countries';
@@ -36,6 +37,7 @@ interface GeoResult {
   name: string;
   displayName: string;
   shortLabel: string;
+  country?: string;
   lat: number;
   lng: number;
 }
@@ -79,6 +81,7 @@ async function geocodeSearch(query: string): Promise<GeoResult[]> {
         type: 'geo' as const,
         name,
         shortLabel,
+        country: (item.address?.country_code ?? '').toUpperCase() || undefined,
         displayName: item.display_name,
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon),
@@ -100,10 +103,11 @@ export function SearchBar({ detailData }: SearchBarProps) {
   const activeRouteId = useRouteStore((s) => s.activeRouteId);
   const addWaypoint = useRouteStore((s) => s.addWaypoint);
   const config = countries[activeCountry];
-  const { query, setQuery, results: plzResults, clear } = useSearch(
+  const { query, setQuery, results: plzResultsGeo, clear } = useSearch(
     detailData,
     config.detailPropertyKey
   );
+  const { search: searchIndex } = useSearchIndex();
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
@@ -111,8 +115,26 @@ export function SearchBar({ detailData }: SearchBarProps) {
   const geoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const indexResults = useMemo(() => {
+    if (!query || query.length < 2) return [];
+    return searchIndex(query, 20);
+  }, [query, searchIndex]);
+
+  const plzResults: PlzResult[] = indexResults.length > 0
+    ? indexResults.map((r) => {
+        const geoMatch = plzResultsGeo.find((g) => g.plz === r.plz);
+        return {
+          type: 'plz' as const,
+          plz: r.plz,
+          name: r.name,
+          country: r.country,
+          feature: geoMatch?.feature ?? null as unknown as Feature,
+        };
+      })
+    : plzResultsGeo.map((r) => ({ type: 'plz' as const, ...r }));
+
   const allResults: SearchResultItem[] = [
-    ...plzResults.map((r) => ({ type: 'plz' as const, ...r })),
+    ...plzResults,
     ...geoResults,
   ];
 
@@ -144,7 +166,7 @@ export function SearchBar({ detailData }: SearchBarProps) {
     return () => {
       if (geoTimerRef.current) clearTimeout(geoTimerRef.current);
     };
-  }, [query, plzResults]);
+  }, [query, indexResults, plzResultsGeo]);
 
   const flyToFeature = useCallback(
     (plz: string, feature: GeoJSON.Feature) => {
@@ -176,15 +198,24 @@ export function SearchBar({ detailData }: SearchBarProps) {
     [activeRouteId, addWaypoint, clear]
   );
 
+  const addPlzToActiveRoute = useRouteStore((s) => s.addPlzToActiveRoute);
   const selectResult = useCallback(
     (item: SearchResultItem) => {
       if (item.type === 'plz') {
-        flyToFeature(item.plz, item.feature);
+        if (item.feature) {
+          flyToFeature(item.plz, item.feature);
+        } else if (item.country) {
+          const prefixed = `${item.country.toLowerCase()}:${item.plz}`;
+          if (activeRouteId) addPlzToActiveRoute(prefixed);
+          clear();
+          setOpen(false);
+          setGeoResults([]);
+        }
       } else {
         flyToGeo(item);
       }
     },
-    [flyToFeature, flyToGeo]
+    [flyToFeature, flyToGeo, activeRouteId, addPlzToActiveRoute, clear]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -258,10 +289,14 @@ export function SearchBar({ detailData }: SearchBarProps) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <svg className="h-3.5 w-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    {r.country ? (
+                      <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded px-1 py-0.5 shrink-0">{r.country}</span>
+                    ) : (
+                      <svg className="h-3.5 w-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
                     <div className="min-w-0">
                       <span className="font-medium dark:text-gray-200">{r.name}</span>
                       <span className="ml-1 text-xs text-gray-400 dark:text-gray-500 truncate block">
