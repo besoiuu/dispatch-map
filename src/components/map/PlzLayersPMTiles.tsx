@@ -65,8 +65,11 @@ export function PlzLayersPMTiles({ tileMetadata, highlightedPlz }: PlzLayersPMTi
         ))}
       {routes
         .filter((r) => r.visible && r.stops.length > 0)
-        .flatMap((r) =>
-          r.stops.map((s, i) => {
+        .flatMap((r) => {
+          let plzIndex = 0;
+          let wpIndex = 0;
+          return r.stops.map((s, i) => {
+            const isWaypoint = s.type === 'waypoint';
             const rawPlz = s.plz ?? s.label ?? '';
             const parts = rawPlz.split(':');
             const displayCode = parts.length > 1 ? parts[1] : rawPlz;
@@ -77,8 +80,17 @@ export function PlzLayersPMTiles({ tileMetadata, highlightedPlz }: PlzLayersPMTi
               : fullLabel.slice(0, 25);
             const isFirst = i === 0;
             const isLast = i === r.stops.length - 1;
-            const letter = String.fromCharCode(65 + i);
             const pinColor = isFirst ? '#22c55e' : isLast ? '#ef4444' : r.color;
+
+            let markerContent: string;
+            if (isWaypoint) {
+              wpIndex++;
+              markerContent = String(wpIndex);
+            } else {
+              markerContent = String.fromCharCode(65 + plzIndex);
+              plzIndex++;
+            }
+
             return (
               <Marker
                 key={`stop-${r.id}-${s.id}`}
@@ -87,12 +99,21 @@ export function PlzLayersPMTiles({ tileMetadata, highlightedPlz }: PlzLayersPMTi
                 anchor="bottom"
               >
                 <div className="flex flex-col items-center group">
-                  <div
-                    className="relative flex items-center justify-center rounded-full text-white font-bold shadow-lg transition-all duration-150"
-                    style={{ backgroundColor: pinColor, width: 28, height: 28, fontSize: 13, border: '2.5px solid white', boxShadow: `0 2px 8px ${pinColor}66` }}
-                  >
-                    {letter}
-                  </div>
+                  {isWaypoint ? (
+                    <div
+                      className="relative flex items-center justify-center text-white font-bold shadow-lg transition-all duration-150"
+                      style={{ backgroundColor: pinColor, width: 24, height: 24, fontSize: 11, border: '2px solid white', borderRadius: 4, transform: 'rotate(45deg)', boxShadow: `0 2px 8px ${pinColor}66` }}
+                    >
+                      <span style={{ transform: 'rotate(-45deg)' }}>{markerContent}</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="relative flex items-center justify-center rounded-full text-white font-bold shadow-lg transition-all duration-150"
+                      style={{ backgroundColor: pinColor, width: 28, height: 28, fontSize: 13, border: '2.5px solid white', boxShadow: `0 2px 8px ${pinColor}66` }}
+                    >
+                      {markerContent}
+                    </div>
+                  )}
                   <svg width="14" height="10" viewBox="0 0 14 10" className="-mt-[3px]" style={{ filter: `drop-shadow(0 1px 2px ${pinColor}44)` }}>
                     <path d="M0 0 L7 9 L14 0" fill={pinColor} stroke="white" strokeWidth="2" strokeLinejoin="round" />
                   </svg>
@@ -102,8 +123,8 @@ export function PlzLayersPMTiles({ tileMetadata, highlightedPlz }: PlzLayersPMTi
                 </div>
               </Marker>
             );
-          })
-        )}
+          });
+        })}
     </>
   );
 }

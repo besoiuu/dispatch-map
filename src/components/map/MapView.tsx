@@ -140,8 +140,16 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
       if (!activeRouteId || !longPressCoord.current) return;
       addWaypoint(activeRouteId, [longPressCoord.current.lng, longPressCoord.current.lat]);
       longPressCoord.current = null;
-    }, 600);
+    }, 800);
   }, [activeRouteId, addWaypoint]);
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressCoord.current = null;
+  }, []);
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) {
@@ -363,6 +371,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
       onMouseMove={handleMouseMove}

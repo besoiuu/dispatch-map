@@ -224,7 +224,16 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
     window.addEventListener('pointerup', onUp);
   };
 
-  const stopLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const getStopLabel = (stop: RouteStop, index: number) => {
+    let plzIdx = 0;
+    let wpIdx = 0;
+    for (let j = 0; j <= index; j++) {
+      if (stops[j].type === 'waypoint') wpIdx++;
+      else plzIdx++;
+    }
+    if (stop.type === 'waypoint') return { text: String(wpIdx), isWaypoint: true };
+    return { text: String.fromCharCode(64 + plzIdx), isWaypoint: false };
+  };
 
   return (
     <div
@@ -305,19 +314,36 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
                   dragIdx === i ? 'opacity-40' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                 }`}
               >
-                <div
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
-                  style={{ backgroundColor: route.color }}
-                >
-                  {stopLetters[i] ?? (i + 1)}
-                </div>
+                {(() => {
+                  const { text, isWaypoint } = getStopLabel(stop, i);
+                  return isWaypoint ? (
+                    <div
+                      className="flex h-5 w-5 items-center justify-center text-[9px] font-bold text-white shrink-0"
+                      style={{ backgroundColor: route.color, borderRadius: 3, transform: 'rotate(45deg)' }}
+                    >
+                      <span style={{ transform: 'rotate(-45deg)' }}>{text}</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0"
+                      style={{ backgroundColor: route.color }}
+                    >
+                      {text}
+                    </div>
+                  );
+                })()}
 
-                <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                    {stop.label || parsePlz(stop.plz ?? '').code}
-                  </span>
-                  {stop.type === 'plz' && stop.plz && (
-                    <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1 shrink-0">{parsePlz(stop.plz).country}</span>
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                      {stop.label || parsePlz(stop.plz ?? '').code}
+                    </span>
+                    {stop.type === 'plz' && stop.plz && (
+                      <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1 shrink-0">{parsePlz(stop.plz).country}</span>
+                    )}
+                  </div>
+                  {stop.type === 'waypoint' && stop.coordinate && (
+                    <span className="text-[10px] text-gray-400 tabular-nums">{stop.coordinate[1].toFixed(4)}, {stop.coordinate[0].toFixed(4)}</span>
                   )}
                 </div>
 
