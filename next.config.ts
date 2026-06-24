@@ -2,6 +2,14 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   compress: true,
+  devIndicators: false,
+  experimental: {
+    turbo: {
+      watchOptions: {
+        ignored: ['**/public/tiles/**', '**/public/data/**', '**/node_modules/**', '**/.git/**'],
+      },
+    },
+  },
   async headers() {
     return [
       {

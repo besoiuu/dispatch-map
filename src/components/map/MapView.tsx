@@ -370,6 +370,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
       onMoveEnd={handleMoveEnd}
       interactiveLayerIds={enabledCountries.flatMap((c) => {
         if (useMapStore.getState().hiddenCountries.has(c)) return [];
+        if (usePMTiles) return [`plz5-fill-${c}`, `plz2-fill-${c}`];
         return [
           ...(detailDataMap[c] ? [`plz5-fill-${c}`] : []),
           ...(overviewDataMap[c] ? [`plz2-fill-${c}`] : []),
