@@ -5,7 +5,6 @@ import type { FeatureCollection } from 'geojson';
 import { useRouteStore } from '@/store/routeStore';
 import { useToastStore } from '@/store/toastStore';
 import { RoutePanel } from './RoutePanel';
-import { formatDistance, formatDuration } from '@/lib/routing';
 
 interface RouteManagerProps {
   detailData: FeatureCollection | null;
@@ -52,10 +51,6 @@ export function RouteManager({ detailData }: RouteManagerProps) {
     setImportText('');
     setImportOpen(false);
   };
-
-  const totalStops = routes.reduce((sum, r) => sum + r.plzCodes.length + r.stops.filter(s => s.type === 'waypoint').length, 0);
-  const totalDistance = routes.reduce((sum, r) => sum + (r.geometry?.distance ?? 0), 0);
-  const totalDuration = routes.reduce((sum, r) => sum + (r.geometry?.duration ?? 0), 0);
 
   return (
     <div className="px-4 py-3">
@@ -123,24 +118,6 @@ export function RouteManager({ detailData }: RouteManagerProps) {
           Add
         </button>
       </div>
-
-      {/* Stats bar */}
-      {routes.length > 1 && totalStops > 0 && (
-        <div className="mb-2 flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-gray-800/30 ring-1 ring-gray-100 dark:ring-gray-800">
-          <span className="font-medium text-gray-700 dark:text-gray-300">
-            {routes.length} routes
-          </span>
-          <span className="text-gray-400">&#8226;</span>
-          <span className="text-gray-500 dark:text-gray-400">{totalStops} stops</span>
-          {totalDistance > 0 && (
-            <>
-              <span className="text-gray-400">&#8226;</span>
-              <span className="font-medium text-blue-600 dark:text-blue-400">{formatDistance(totalDistance)}</span>
-              <span className="text-gray-500 dark:text-gray-400">{formatDuration(totalDuration)}</span>
-            </>
-          )}
-        </div>
-      )}
 
       {routes.length === 0 && (
         <div className="text-center py-6 px-4">

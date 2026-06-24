@@ -351,6 +351,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
     <Map
       ref={mapRef}
       mapStyle={dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT}
+      preserveDrawingBuffer={true}
       initialViewState={{
         longitude: 8.5,
         latitude: 51.0,
