@@ -204,9 +204,19 @@ export function SearchBar({ detailData }: SearchBarProps) {
       if (item.type === 'plz') {
         if (item.feature) {
           flyToFeature(item.plz, item.feature);
-        } else if (item.country) {
-          const prefixed = `${item.country.toLowerCase()}:${item.plz}`;
-          if (activeRouteId) addPlzToActiveRoute(prefixed);
+        } else {
+          const cc = (item.country ?? '').toLowerCase();
+          const countryConfig = cc ? countries[cc as keyof typeof countries] : null;
+          if (countryConfig) {
+            const [lng, lat] = countryConfig.center;
+            const pad = 0.5;
+            window.dispatchEvent(new CustomEvent('map:flyto', {
+              detail: { bbox: [lng - pad, lat - pad, lng + pad, lat + pad] }
+            }));
+          }
+          if (cc && activeRouteId) {
+            addPlzToActiveRoute(`${cc}:${item.plz}`);
+          }
           clear();
           setOpen(false);
           setGeoResults([]);
