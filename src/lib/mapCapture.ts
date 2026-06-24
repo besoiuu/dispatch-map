@@ -5,7 +5,8 @@ export function enableMapCapture() {
   if (patched || typeof window === 'undefined') return;
   patched = true;
   const origGetContext = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function(type: string, attrs?: WebGLContextAttributes) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  HTMLCanvasElement.prototype.getContext = function(this: HTMLCanvasElement, type: string, attrs?: any) {
     if ((type === 'webgl' || type === 'webgl2') && this.classList.contains('maplibregl-canvas')) {
       attrs = { ...attrs, preserveDrawingBuffer: true };
     }
