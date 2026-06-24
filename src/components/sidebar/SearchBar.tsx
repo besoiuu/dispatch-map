@@ -206,13 +206,14 @@ export function SearchBar({ detailData }: SearchBarProps) {
           flyToFeature(item.plz, item.feature);
         } else {
           const cc = (item.country ?? '').toLowerCase();
-          const countryConfig = cc ? countries[cc as keyof typeof countries] : null;
-          if (countryConfig) {
-            const [lng, lat] = countryConfig.center;
-            const pad = 0.5;
+          const match = indexResults.find((r) => r.plz === item.plz && r.country === item.country);
+          if (match) {
+            const pad = 0.02;
             window.dispatchEvent(new CustomEvent('map:flyto', {
-              detail: { bbox: [lng - pad, lat - pad, lng + pad, lat + pad] }
+              detail: { bbox: [match.lng - pad, match.lat - pad, match.lng + pad, match.lat + pad] }
             }));
+            setHighlightedPlz(item.plz);
+            setTimeout(() => setHighlightedPlz(null), 2000);
           }
           if (cc && activeRouteId) {
             addPlzToActiveRoute(`${cc}:${item.plz}`);
