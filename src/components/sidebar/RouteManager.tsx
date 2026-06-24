@@ -58,9 +58,9 @@ export function RouteManager({ detailData }: RouteManagerProps) {
   const totalDuration = routes.reduce((sum, r) => sum + (r.geometry?.duration ?? 0), 0);
 
   return (
-    <div className="p-3">
+    <div className="px-4 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Routes</h3>
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Routes</h3>
         {activeRouteId && (
           <button
             onClick={() => setImportOpen(!importOpen)}
@@ -114,11 +114,11 @@ export function RouteManager({ detailData }: RouteManagerProps) {
           onChange={(e) => setNewRouteName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAddRoute()}
           placeholder="New route name..."
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-colors"
+          className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800/50 dark:focus:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-all"
         />
         <button
           onClick={handleAddRoute}
-          className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900"
+          className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900"
         >
           Add
         </button>
@@ -126,7 +126,7 @@ export function RouteManager({ detailData }: RouteManagerProps) {
 
       {/* Stats bar */}
       {routes.length > 1 && totalStops > 0 && (
-        <div className="mb-2 flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2 text-xs dark:bg-gray-800/50">
+        <div className="mb-2 flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-gray-800/30 ring-1 ring-gray-100 dark:ring-gray-800">
           <span className="font-medium text-gray-700 dark:text-gray-300">
             {routes.length} routes
           </span>

@@ -258,7 +258,7 @@ export function SearchBar({ detailData }: SearchBarProps) {
         onKeyDown={handleKeyDown}
         onFocus={() => allResults.length > 0 && setOpen(true)}
         placeholder="Search postal code or place..."
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-colors"
+        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800/50 dark:focus:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-all"
       />
       {(query || geoLoading) && (
         <button
@@ -282,7 +282,7 @@ export function SearchBar({ detailData }: SearchBarProps) {
         </button>
       )}
       {open && allResults.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800">
+        <ul className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-gray-200/80 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/10">
           {allResults.map((r, i) => (
             <li key={r.type === 'plz' ? `plz-${r.plz}` : `geo-${i}`}>
               <button

@@ -228,14 +228,15 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
 
   return (
     <div
-      className={`rounded-lg border transition-colors ${
+      className={`rounded-xl border-l-[3px] transition-all ${
         isActive
-          ? 'border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950/40'
-          : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
-      }`}
+          ? 'bg-blue-50/50 dark:bg-blue-950/20 shadow-sm'
+          : 'bg-white hover:bg-gray-50/50 dark:bg-gray-900 dark:hover:bg-gray-800/30'
+      } border border-gray-200/60 dark:border-gray-800`}
+      style={{ borderLeftColor: isActive ? route.color : 'transparent' }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 p-3">
+      <div className="flex items-center gap-2 px-3 py-2.5">
         <button
           onClick={onActivate}
           className="cursor-pointer h-4 w-4 rounded-full border-2 border-gray-300 shrink-0 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
@@ -346,59 +347,57 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
           ))}
 
           </div>
-          {/* Summary bar */}
-          <div className="flex flex-wrap items-center justify-between gap-1 border-t border-gray-200 px-3 py-2 dark:border-gray-700" style={{ backgroundColor: route.color + '10' }}>
+          {/* Summary + Actions */}
+          <div className="border-t border-gray-100 dark:border-gray-800 px-3 py-2">
             {route.calculating ? (
-              <span className="text-xs text-gray-500 animate-pulse">Calculating route...</span>
+              <span className="text-xs text-gray-500 animate-pulse">Calculating...</span>
             ) : route.geometry ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold" style={{ color: route.color }}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-sm font-bold tabular-nums" style={{ color: route.color }}>
                   {formatDistance(route.geometry.distance)}
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-gray-400">·</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
                   {formatDuration(route.geometry.duration)}
                 </span>
               </div>
             ) : stops.length >= 2 ? (
-              <span className="text-xs text-gray-400">Add stops to calculate route</span>
+              <p className="text-[11px] text-gray-400 mb-1.5">Calculating route...</p>
             ) : (
-              <span className="text-xs text-gray-400">Add more stops</span>
+              <p className="text-[11px] text-gray-400 mb-1.5">Add more stops</p>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-0.5">
               {route.geometry && (
-                <button onClick={doCalculate} className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 transition-colors rounded px-1.5 py-0.5 hover:bg-blue-50 dark:hover:bg-blue-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Recalculate</button>
+                <button onClick={doCalculate} className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Recalculate">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
               )}
               {stops.length >= 3 && (
-                <button onClick={doOptimize} className="cursor-pointer text-xs text-orange-600 hover:text-orange-800 dark:text-orange-400 transition-colors rounded px-1.5 py-0.5 hover:bg-orange-50 dark:hover:bg-orange-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Optimize</button>
+                <button onClick={doOptimize} className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Optimize route">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </button>
               )}
               {stops.length >= 2 && (
-                <a
-                  href={buildGoogleMapsUrl(stops.map((s) => ({ coordinate: s.coordinate, label: s.label })))}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer text-xs text-green-600 hover:text-green-800 dark:text-green-400 transition-colors rounded px-1.5 py-0.5 hover:bg-green-50 dark:hover:bg-green-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  Google Maps
+                <a href={buildGoogleMapsUrl(stops.map((s) => ({ coordinate: s.coordinate, label: s.label })))} target="_blank" rel="noopener noreferrer" className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Open in Google Maps">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 </a>
               )}
-              <button
-                onClick={() => {
-                  const codes = stops.map(s => s.plz ?? `@${s.coordinate[1].toFixed(5)},${s.coordinate[0].toFixed(5)}`).join(',');
-                  const url = `${window.location.origin}/#route=${encodeURIComponent(route.name)}:${codes}`;
-                  navigator.clipboard.writeText(url);
-                  addToast('Share link copied to clipboard');
-                }}
-                className="cursor-pointer text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400 transition-colors rounded px-1.5 py-0.5 hover:bg-purple-50 dark:hover:bg-purple-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >Share Link</button>
-              <button onClick={handleCopy} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Copy</button>
-              <button onClick={handleExportCSV} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">CSV</button>
-              <button onClick={() => printRoute(route, stops)} className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-colors rounded px-1.5 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">PDF</button>
-              <button onClick={() => {
-                const savedCodes = [...route.plzCodes];
-                const savedStops = [...route.stops];
-                clearRoute(route.id);
-                addToast('Stops cleared', 'info', { label: 'Undo', onClick: () => restoreRouteStops(route.id, savedCodes, savedStops) });
-              }} className="cursor-pointer text-xs text-red-500 hover:text-red-700 transition-colors rounded px-1.5 py-0.5 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">Clear</button>
+              <button onClick={() => { const codes = stops.map(s => s.plz ?? `@${s.coordinate[1].toFixed(5)},${s.coordinate[0].toFixed(5)}`).join(','); navigator.clipboard.writeText(`${window.location.origin}/#route=${encodeURIComponent(route.name)}:${codes}`); addToast('Share link copied'); }} className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Copy share link">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+              </button>
+              <button onClick={handleCopy} className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Copy as text">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </button>
+              <button onClick={handleExportCSV} className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Export CSV">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </button>
+              <button onClick={() => printRoute(route, stops)} className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-950/50 transition-colors" title="Print / PDF">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+              </button>
+              <div className="flex-1" />
+              <button onClick={() => { const savedCodes = [...route.plzCodes]; const savedStops = [...route.stops]; clearRoute(route.id); addToast('Stops cleared', 'info', { label: 'Undo', onClick: () => restoreRouteStops(route.id, savedCodes, savedStops) }); }} className="cursor-pointer rounded-md p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:text-gray-600 dark:hover:text-red-400 dark:hover:bg-red-950/50 transition-colors" title="Clear all stops">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
             </div>
           </div>
         </div>

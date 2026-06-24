@@ -31,15 +31,15 @@ export function ZoomPills() {
 
   return (
     <div className="absolute top-2 left-1/2 z-10 -translate-x-1/2" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="flex rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+      <div className="flex rounded-xl bg-white/95 p-0.5 shadow-md ring-1 ring-black/5 backdrop-blur-md dark:bg-gray-900/95 dark:ring-white/10">
         {LEVELS.map((level, i) => (
           <button
             key={level.label}
             onClick={() => handleClick(level.zoom)}
-            className={`cursor-pointer rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-800 ${
+            className={`relative cursor-pointer rounded-[10px] px-3.5 py-1.5 text-[11px] font-semibold tracking-wide transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               i === active
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
             }`}
           >
             {level.label}
