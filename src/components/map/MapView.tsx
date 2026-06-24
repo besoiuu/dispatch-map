@@ -239,10 +239,10 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
       { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
       zoom
     );
-    if (!usePMTiles && visible.length > 0) {
+    if (visible.length > 0) {
       loadDetailForCountries(visible);
     }
-  }, [setZoom, usePMTiles]);
+  }, [setZoom]);
 
   useEffect(() => {
     const handler = (e: Event) => {

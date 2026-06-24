@@ -22,7 +22,7 @@ export function MapShell() {
   if (USE_PMTILES) ensurePMTilesProtocol();
   const tileMetadata = USE_PMTILES ? useTileMetadata() : null;
   const { detailDataMap, overviewDataMap } = useMapData();
-  const loading = USE_PMTILES ? false : useMapStore((s) => s.loading);
+  const loading = useMapStore((s) => s.loading);
   const dark = useThemeStore((s) => s.dark);
   const colorBlind = useThemeStore((s) => s.colorBlind);
 
