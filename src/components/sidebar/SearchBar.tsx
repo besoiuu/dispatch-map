@@ -48,6 +48,8 @@ interface PlzResult {
   name?: string;
   country?: string;
   feature: Feature;
+  lng?: number;
+  lat?: number;
 }
 
 type SearchResultItem = PlzResult | GeoResult;
@@ -129,6 +131,8 @@ export function SearchBar({ detailData }: SearchBarProps) {
           name: r.name,
           country: r.country,
           feature: geoMatch?.feature ?? null as unknown as Feature,
+          lng: r.lng,
+          lat: r.lat,
         };
       })
     : plzResultsGeo.map((r) => ({ type: 'plz' as const, ...r }));
@@ -206,11 +210,10 @@ export function SearchBar({ detailData }: SearchBarProps) {
           flyToFeature(item.plz, item.feature);
         } else {
           const cc = (item.country ?? '').toLowerCase();
-          const match = indexResults.find((r) => r.plz === item.plz && r.country === item.country);
-          if (match) {
+          if (item.lng && item.lat) {
             const pad = 0.02;
             window.dispatchEvent(new CustomEvent('map:flyto', {
-              detail: { bbox: [match.lng - pad, match.lat - pad, match.lng + pad, match.lat + pad] }
+              detail: { bbox: [item.lng - pad, item.lat - pad, item.lng + pad, item.lat + pad] }
             }));
             setHighlightedPlz(item.plz);
             setTimeout(() => setHighlightedPlz(null), 2000);

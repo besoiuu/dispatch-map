@@ -39,20 +39,21 @@ export function useSearchIndex() {
     (query: string, limit = 20): SearchIndexResult[] => {
       if (!index || !query || query.length < 2) return [];
       const q = query.toLowerCase();
-      const results: SearchIndexResult[] = [];
+      const exact: SearchIndexResult[] = [];
+      const prefix: SearchIndexResult[] = [];
+      const nameMatch: SearchIndexResult[] = [];
       for (const entry of index) {
-        if (entry.plz.startsWith(q) || entry.name.toLowerCase().includes(q)) {
-          results.push({
-            plz: entry.plz,
-            name: entry.name,
-            country: entry.country.toUpperCase(),
-            lng: entry.lng,
-            lat: entry.lat,
-          });
-          if (results.length >= limit) break;
+        const r = { plz: entry.plz, name: entry.name, country: entry.country.toUpperCase(), lng: entry.lng, lat: entry.lat };
+        if (entry.plz === q) {
+          exact.push(r);
+        } else if (entry.plz.startsWith(q)) {
+          prefix.push(r);
+        } else if (entry.name.toLowerCase().includes(q)) {
+          nameMatch.push(r);
         }
+        if (exact.length + prefix.length + nameMatch.length >= limit * 3) break;
       }
-      return results;
+      return [...exact, ...prefix, ...nameMatch].slice(0, limit);
     },
     [index]
   );
