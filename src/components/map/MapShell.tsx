@@ -14,9 +14,12 @@ import { MobileHint } from '../ui/MobileHint';
 import { enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
 import { ensurePMTilesProtocol } from '@/lib/pmtiles-protocol';
+import { enableMapCapture } from '@/lib/mapCapture';
 import { useTileMetadata } from '@/hooks/useTileMetadata';
 
 const USE_PMTILES = process.env.NEXT_PUBLIC_USE_PMTILES === 'true';
+
+enableMapCapture();
 
 export function MapShell() {
   if (USE_PMTILES) ensurePMTilesProtocol();

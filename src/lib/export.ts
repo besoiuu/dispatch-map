@@ -1,5 +1,6 @@
 import type { Route, RouteStop } from '@/types/route';
 import { formatDistance, formatDuration } from './routing';
+import { captureMap } from './mapCapture';
 
 export function routeToCSV(route: Route, stops: RouteStop[]): string {
   const lines = ['Stop,Postal Code,Name,Country,Latitude,Longitude,Distance,Duration'];
@@ -39,8 +40,7 @@ export async function copyRouteAsText(route: Route): Promise<void> {
 }
 
 export function printRoute(route: Route, stops: RouteStop[]): void {
-  const canvas = document.querySelector<HTMLCanvasElement>('.maplibregl-canvas');
-  const mapImage = canvas?.toDataURL('image/png') ?? '';
+  const mapImage = captureMap();
 
   const stopLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const stopsHtml = stops.map((s, i) => {
