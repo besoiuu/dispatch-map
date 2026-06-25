@@ -123,6 +123,19 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
       )}
 
       <div className="border-t border-gray-100 dark:border-gray-800 mt-0.5 pt-0.5">
+        <a
+          href={`https://www.google.com/maps/@${state.lngLat.lat},${state.lngLat.lng},15z`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={onClose}
+          className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+          role="menuitem"
+        >
+          <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          Open in Google Maps
+        </a>
         <button
           onClick={handleCopyCoords}
           className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"

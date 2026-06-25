@@ -335,15 +335,26 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
 
                 <div className="flex-1 min-w-0 flex flex-col">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                      {stop.label || parsePlz(stop.plz ?? '').code}
-                    </span>
-                    {stop.type === 'plz' && stop.plz && (
-                      <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1 shrink-0">{parsePlz(stop.plz).country}</span>
+                    {stop.type === 'waypoint' ? (
+                      <>
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                          {stop.label !== 'Waypoint' ? stop.label : `Waypoint ${getStopLabel(stop, i).text}`}
+                        </span>
+                        <span className="text-[9px] text-gray-400 bg-gray-100 dark:bg-gray-800 rounded px-1 shrink-0">WP</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                          {stop.label || parsePlz(stop.plz ?? '').code}
+                        </span>
+                        {stop.plz && (
+                          <span className="text-[10px] text-gray-400 uppercase bg-gray-100 dark:bg-gray-800 rounded px-1 shrink-0">{parsePlz(stop.plz).country}</span>
+                        )}
+                      </>
                     )}
                   </div>
                   {stop.type === 'waypoint' && stop.coordinate && (
-                    <span className="text-[10px] text-gray-400 tabular-nums">{stop.coordinate[1].toFixed(4)}, {stop.coordinate[0].toFixed(4)}</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">{stop.coordinate[1].toFixed(5)}, {stop.coordinate[0].toFixed(5)}</span>
                   )}
                 </div>
 
