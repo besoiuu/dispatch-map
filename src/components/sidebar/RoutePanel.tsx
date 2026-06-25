@@ -183,17 +183,28 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopsKey, isActive]);
 
+  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handlePointerDown = (index: number, e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
-    e.preventDefault();
-    setDragIdx(index);
-    setDropIdx(index);
+
+    const startY = e.clientY;
+    let started = false;
 
     const listEl = listRef.current;
     if (!listEl) return;
     const items = Array.from(listEl.querySelectorAll<HTMLElement>('[data-stop-idx]'));
 
     const onMove = (me: PointerEvent) => {
+      if (!started) {
+        if (Math.abs(me.clientY - startY) > 8) {
+          started = true;
+          setDragIdx(index);
+          setDropIdx(index);
+        } else {
+          return;
+        }
+      }
       const y = me.clientY;
       let closest = index;
       let minDist = Infinity;
@@ -209,6 +220,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      if (!started) return;
       setDragIdx((prev) => {
         setDropIdx((drop) => {
           if (prev !== null && drop !== null && prev !== drop) {
@@ -310,7 +322,7 @@ export function RoutePanel({ route, isActive, onActivate, detailData }: RoutePan
               <div
                 data-stop-idx={i}
                 onPointerDown={(e) => handlePointerDown(i, e)}
-                className={`flex items-center gap-2 px-3 py-2 group cursor-grab active:cursor-grabbing select-none touch-none ${
+                className={`flex items-center gap-2 px-3 py-2 group cursor-grab active:cursor-grabbing select-none ${
                   dragIdx === i ? 'opacity-40' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                 }`}
               >

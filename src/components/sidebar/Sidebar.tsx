@@ -172,7 +172,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
       )}
 
       <InstallPrompt />
-      <div className="border-t border-gray-100 px-4 py-2 text-center dark:border-gray-800">
+      <div className="shrink-0 border-t border-gray-100 px-4 py-2 text-center dark:border-gray-800">
         <a
           href="https://revolut.me/besoiu"
           target="_blank"

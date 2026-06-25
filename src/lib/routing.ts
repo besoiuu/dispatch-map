@@ -74,7 +74,7 @@ export function buildGoogleMapsUrl(
   if (stops.length < 2) return '';
 
   const fmt = (s: { coordinate: [number, number]; label?: string }) => {
-    if (s.label) return encodeURIComponent(s.label);
+    if (s.label && !s.label.startsWith('Waypoint')) return encodeURIComponent(s.label);
     return `${s.coordinate[1]},${s.coordinate[0]}`;
   };
 
