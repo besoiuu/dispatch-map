@@ -124,7 +124,17 @@ export function SearchBar({ detailData }: SearchBarProps) {
 
   const plzResults: PlzResult[] = indexResults.length > 0
     ? indexResults.map((r) => {
-        const geoMatch = plzResultsGeo.find((g) => g.plz === r.plz);
+        // The country MUST be part of this lookup. plzResultsGeo spans
+        // every visible country (Sidebar merges them and tags each feature
+        // with _country), and 890 postal codes exist in both Austria and
+        // the Netherlands alone — 1060 is Wien Mariahilf AND Amsterdam.
+        // Matching on the code alone attached whichever country came first
+        // in enabledCountries ('de','nl',…,'at',…), so searching an
+        // Austrian code found the right index entry and then flew to the
+        // Dutch polygon, because selectResult prefers feature over lng/lat.
+        const geoMatch = plzResultsGeo.find(
+          (g) => g.plz === r.plz && g.country === r.country
+        );
         return {
           type: 'plz' as const,
           plz: r.plz,
