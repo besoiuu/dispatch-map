@@ -65,3 +65,25 @@ Every country MUST match this exact zoom behavior — Germany and Austria are th
 6. Verify overview→detail transition happens at z=9 (not earlier, not later).
 7. Verify tile labels (postal code + city name) appear at z=10.
 8. Bump DATA_VERSION and hard-refresh to confirm cache busting works.
+
+# Search & Lookups
+
+## Postal codes are NOT unique across countries
+`plz2`/`plz5` values repeat between countries — AT and NL both have a
+`10`, `12`, `50` and so on. **Every lookup that turns a search result into
+a map location must be keyed by `(plz, country)`, never by `plz` alone.**
+
+`SearchBar.tsx` matched on `plz` only, so searching an Austrian code could
+find the Netherlands entry first and fly the map to the wrong country
+(fixed in `9265121`):
+
+```ts
+const geoMatch = plzResultsGeo.find(
+  (g) => g.plz === r.plz && g.country === r.country
+);
+```
+
+The same rule applies to any new index, cache or `Map` keyed on a postal
+code: the key is the pair, or the bug comes straight back. It is easy to
+miss because it only shows up for codes that happen to collide, and only
+when the wrong country's dataset is loaded first.
