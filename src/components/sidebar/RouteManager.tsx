@@ -1,22 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import type { FeatureCollection } from 'geojson';
 import { useRouteStore } from '@/store/routeStore';
 import { useToastStore } from '@/store/toastStore';
+import { useMapStore } from '@/store/mapStore';
 import { RoutePanel } from './RoutePanel';
 
-interface RouteManagerProps {
-  detailData: FeatureCollection | null;
-}
-
-export function RouteManager({ detailData }: RouteManagerProps) {
+export function RouteManager() {
   const routes = useRouteStore((s) => s.routes);
   const activeRouteId = useRouteStore((s) => s.activeRouteId);
   const addRoute = useRouteStore((s) => s.addRoute);
   const addPlzToActiveRoute = useRouteStore((s) => s.addPlzToActiveRoute);
   const setActiveRoute = useRouteStore((s) => s.setActiveRoute);
   const addToast = useToastStore((s) => s.addToast);
+  const activeCountry = useMapStore((s) => s.activeCountry);
   const [newRouteName, setNewRouteName] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
@@ -41,13 +38,22 @@ export function RouteManager({ detailData }: RouteManagerProps) {
       return;
     }
     let added = 0;
-    for (const code of codes) {
-      const before = useRouteStore.getState().routes.find((r) => r.id === activeRouteId)?.plzCodes.length ?? 0;
-      addPlzToActiveRoute(code);
-      const after = useRouteStore.getState().routes.find((r) => r.id === activeRouteId)?.plzCodes.length ?? 0;
-      if (after > before) added++;
+    let duplicate = 0;
+    let unknown = 0;
+    for (const raw of codes) {
+      // A bare code is read as belonging to the country being worked in. It
+      // has to be qualified somehow: the same code exists in several
+      // countries, and an unqualified one cannot be looked up at all.
+      const code = raw.includes(':') ? raw.toLowerCase() : `${activeCountry}:${raw}`;
+      const outcome = addPlzToActiveRoute(code);
+      if (outcome === 'added') added++;
+      else if (outcome === 'duplicate') duplicate++;
+      else if (outcome === 'unknown-code') unknown++;
     }
-    addToast(`Imported ${added} of ${codes.length} postal codes`, added > 0 ? 'success' : 'info');
+    const parts = [`${added} added`];
+    if (duplicate > 0) parts.push(`${duplicate} already on a route`);
+    if (unknown > 0) parts.push(`${unknown} not recognised`);
+    addToast(parts.join(', '), added > 0 ? 'success' : 'info');
     setImportText('');
     setImportOpen(false);
   };
@@ -137,7 +143,6 @@ export function RouteManager({ detailData }: RouteManagerProps) {
             route={route}
             isActive={route.id === activeRouteId}
             onActivate={() => setActiveRoute(route.id)}
-            detailData={detailData}
           />
         ))}
       </div>

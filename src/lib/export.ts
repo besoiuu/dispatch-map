@@ -1,52 +1,103 @@
 import type { Route, RouteStop } from '@/types/route';
 import { formatDistance, formatDuration } from './routing';
 import { captureMap } from './mapCapture';
+import { stopBadge } from './stopBadge';
 import { useThemeStore } from '@/store/themeStore';
 
+/** RFC-4180 quoting, so a label with a comma or a quote survives. */
+function csvCell(value: string): string {
+  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
 export function routeToCSV(route: Route, stops: RouteStop[]): string {
-  const lines = ['Stop,Postal Code,Name,Country,Latitude,Longitude,Distance,Duration'];
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lines = ['Stop,Type,Postal Code,Name,Country,Latitude,Longitude,Distance,Duration'];
   for (let i = 0; i < stops.length; i++) {
     const s = stops[i];
     const plzParts = s.plz?.includes(':') ? s.plz.split(':') : ['', s.plz ?? ''];
     const country = plzParts[0].toUpperCase();
     const code = plzParts.length > 1 ? plzParts[1] : plzParts[0];
-    const name = (s.label || '').replace(/,/g, ' ');
     const lat = s.coordinate?.[1]?.toFixed(5) ?? '';
     const lng = s.coordinate?.[0]?.toFixed(5) ?? '';
     const leg = route.geometry?.legs?.[i];
     const dist = leg && i < stops.length - 1 ? formatDistance(leg.distance) : '';
     const dur = leg && i < stops.length - 1 ? formatDuration(leg.duration) : '';
-    lines.push(`${letters[i] ?? i + 1},${code},${name},${country},${lat},${lng},${dist},${dur}`);
+    // `stopBadge`, not the list position: lettering by index gave waypoints a
+    // letter and shifted every pickup after one, so the exported sheet
+    // disagreed with the pins the dispatcher was reading them off.
+    const { text, isWaypoint } = stopBadge(stops, i);
+    const cells = [
+      text,
+      isWaypoint ? 'Waypoint' : 'Area',
+      code,
+      s.label || '',
+      country,
+      lat,
+      lng,
+      dist,
+      dur,
+    ];
+    lines.push(cells.map(csvCell).join(','));
   }
   if (route.geometry) {
-    lines.push(`,,TOTAL,,,${formatDistance(route.geometry.distance)},${formatDuration(route.geometry.duration)}`);
+    lines.push(
+      `,,,TOTAL,,,,${csvCell(formatDistance(route.geometry.distance))},${csvCell(formatDuration(route.geometry.duration))}`
+    );
   }
-  return lines.join('\n');
+  return lines.join('\r\n');
 }
 
 export function downloadCSV(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  // The BOM is what makes Excel open a UTF-8 CSV without mangling umlauts,
+  // and these are German and Romanian place names.
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Revoking in the same tick raced the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export async function copyRouteAsText(route: Route): Promise<void> {
-  const text = `${route.name}: ${route.plzCodes.join(', ')}`;
-  await navigator.clipboard.writeText(text);
+/**
+ * The route as a dispatcher would read it out.
+ *
+ * This used to copy `route.plzCodes.join(', ')` - raw internal keys, so the
+ * clipboard said "de:27576, nl:4214" - and it skipped every waypoint, because
+ * waypoints have no postal code. The toast still said "copied".
+ */
+export function routeAsText(route: Route, stops: RouteStop[]): string {
+  const head = route.geometry
+    ? `${route.name} - ${formatDistance(route.geometry.distance)}, ${formatDuration(route.geometry.duration)}`
+    : route.name;
+  const body = stops.map((s, i) => {
+    const { text } = stopBadge(stops, i);
+    return `${text}. ${s.label || s.plz?.split(':').pop() || ''}`;
+  });
+  return [head, ...body].join('\n');
 }
+
+export async function copyRouteAsText(route: Route, stops: RouteStop[]): Promise<void> {
+  await navigator.clipboard.writeText(routeAsText(route, stops));
+}
+
+let printing = false;
 
 export function printRoute(route: Route, stops: RouteStop[]): void {
-  // Force light mode for map capture
+  // A second click during the 2.5 s wait toggled the theme twice and left it
+  // inverted, and the stored preference with it.
+  if (printing) return;
+  printing = true;
+
+  // Force light mode for the map capture. The class is removed directly and
+  // the store is NOT toggled: `toggle()` persists, so a failure mid-print used
+  // to leave dark mode switched off permanently.
   const wasDark = useThemeStore.getState().dark;
-  if (wasDark) {
-    useThemeStore.getState().toggle();
-    document.documentElement.classList.remove('dark');
-  }
+  if (wasDark) document.documentElement.classList.remove('dark');
 
   // Zoom map to fit route stops
   if (stops.length >= 2) {
@@ -57,12 +108,13 @@ export function printRoute(route: Route, stops: RouteStop[]): void {
     window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox } }));
   }
 
-  // Wait for light map tiles to load, then capture and restore
+  // Wait for light map tiles to load, then capture and restore.
   setTimeout(() => {
-    _printRouteInner(route, stops);
-    if (wasDark) {
-      useThemeStore.getState().toggle();
-      document.documentElement.classList.add('dark');
+    try {
+      _printRouteInner(route, stops);
+    } finally {
+      if (wasDark) document.documentElement.classList.add('dark');
+      printing = false;
     }
   }, 2500);
 }

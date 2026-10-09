@@ -33,7 +33,10 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 flex flex-col gap-2 pointer-events-none">
+    <div
+      className="pointer-events-none fixed left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col gap-2"
+      style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+    >
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -42,21 +45,21 @@ export function ToastContainer() {
           aria-live="polite"
         >
           {ICONS[toast.type]}
-          <span>{toast.message}</span>
+          <span className="min-w-0">{toast.message}</span>
           {toast.action && (
             <button
               onClick={() => { toast.action!.onClick(); removeToast(toast.id); }}
-              className="ml-1 cursor-pointer rounded-md bg-white/20 px-2 py-0.5 text-xs font-bold hover:bg-white/30 transition-colors"
+              className="ml-1 min-h-9 shrink-0 cursor-pointer rounded-md bg-white/20 px-3 text-xs font-bold transition-colors hover:bg-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
               {toast.action.label}
             </button>
           )}
           <button
             onClick={() => removeToast(toast.id)}
-            className="ml-1 rounded-full p-0.5 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
-            aria-label="Dismiss"
+            className="-mr-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-label="Dismiss notification"
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

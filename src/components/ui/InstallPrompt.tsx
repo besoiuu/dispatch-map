@@ -12,8 +12,13 @@ export function InstallPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (localStorage.getItem('dispatch-install-dismissed')) return;
+    // Unguarded, this threw in a private window and took the effect - and the
+    // listener registration below - with it.
+    try {
+      if (localStorage.getItem('dispatch-install-dismissed')) return;
+    } catch {
+      /* private mode: offer the prompt, it just will not be remembered */
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -35,7 +40,11 @@ export function InstallPrompt() {
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem('dispatch-install-dismissed', '1');
+    try {
+      localStorage.setItem('dispatch-install-dismissed', '1');
+    } catch {
+      /* private mode; it will be offered again next time */
+    }
   };
 
   return (
@@ -50,16 +59,16 @@ export function InstallPrompt() {
         </div>
         <button
           onClick={handleInstall}
-          className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700 transition-colors shrink-0"
+          className="min-h-11 shrink-0 cursor-pointer rounded-md bg-blue-600 px-3 text-[11px] font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           Install
         </button>
         <button
           onClick={handleDismiss}
-          className="cursor-pointer text-blue-400 hover:text-blue-600 transition-colors shrink-0"
-          aria-label="Dismiss"
+          className="flex h-11 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-blue-400 transition-colors hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label="Dismiss install prompt"
         >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>

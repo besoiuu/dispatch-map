@@ -20,10 +20,12 @@ import { useTileMetadata } from '@/hooks/useTileMetadata';
 const USE_PMTILES = process.env.NEXT_PUBLIC_USE_PMTILES === 'true';
 
 enableMapCapture();
+// Registering the protocol is a one-time side effect, so it belongs here and
+// not in a render body where it ran on every pass.
+if (USE_PMTILES) ensurePMTilesProtocol();
 
 export function MapShell() {
-  if (USE_PMTILES) ensurePMTilesProtocol();
-  const tileMetadata = USE_PMTILES ? useTileMetadata() : null;
+  const tileMetadata = useTileMetadata(USE_PMTILES);
   const { detailDataMap, overviewDataMap } = useMapData();
   const loading = useMapStore((s) => s.loading);
   const dark = useThemeStore((s) => s.dark);
@@ -42,6 +44,16 @@ export function MapShell() {
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     if (dy > 80) setMobileOpen(false);
   }, []);
+
+  // The sheet covers the map, so its own scrolling must not also pan the page.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
@@ -162,7 +174,12 @@ export function MapShell() {
         <MobileHint />
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="cursor-pointer absolute bottom-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-200 md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          aria-label={mobileOpen ? 'Close routes panel' : 'Open routes panel'}
+          aria-expanded={mobileOpen}
+          // The offset clears the home-bar area, which `viewport-fit: cover`
+          // puts the page underneath.
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+          className="cursor-pointer absolute right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-200 md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {mobileOpen ? (
@@ -193,15 +210,26 @@ export function MapShell() {
           ${sidebarCollapsed ? 'md:translate-x-full' : 'md:translate-x-0'}
         `}
       >
-        <div className="h-[80vh] md:h-full">
+        {/* dvh, not vh: on a phone `vh` is the tallest the viewport ever gets,
+            so with the browser chrome showing an 80vh sheet overflows the
+            screen and its bottom row - including the buttons - is unreachable. */}
+        <div className="flex h-[85dvh] flex-col md:h-full">
           <div
             onTouchStart={handleSwipeStart}
             onTouchEnd={handleSwipeEnd}
-            className="flex justify-center py-2 md:hidden bg-white dark:bg-gray-900 rounded-t-2xl border-t border-gray-200 dark:border-gray-700 cursor-grab"
+            role="button"
+            tabIndex={-1}
+            aria-label="Drag down to close"
+            className="flex shrink-0 cursor-grab touch-none justify-center rounded-t-2xl border-t border-gray-200 bg-white py-3 md:hidden dark:border-gray-700 dark:bg-gray-900"
           >
             <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
           </div>
-          <Sidebar detailDataMap={detailDataMap} />
+          <div
+            className="min-h-0 flex-1"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          >
+            <Sidebar />
+          </div>
         </div>
       </div>
       {mobileOpen && (

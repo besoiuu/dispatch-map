@@ -5,25 +5,17 @@ import { useMapStore } from '@/store/mapStore';
 import { countries, enabledCountries } from '@/config/countries';
 import type { CountryCode } from '@/types/country';
 import type { FeatureCollection } from 'geojson';
+// One copy of the bounding boxes, shared with `countryAtCoord`.
+import { COUNTRY_BOUNDS } from '@/lib/countryAtCoord';
 
-const DATA_VERSION = 21;
+// 22: Polish regions gained their bbox, three Austrian and three Italian
+// overview features gained a name, and the Italian ISO province codes OT/OG/VS
+// became the real postal prefixes 07/08/09.
+const DATA_VERSION = 22;
+
+const USE_PMTILES = process.env.NEXT_PUBLIC_USE_PMTILES === 'true';
 
 const DETAIL_PREFETCH_ZOOM = 7;
-
-const COUNTRY_BOUNDS: Record<CountryCode, [number, number, number, number]> = {
-  de: [5.8, 47.3, 15.1, 55.0],
-  nl: [3.3, 50.7, 7.2, 53.6],
-  fr: [-5.2, 41.3, 8.3, 51.1],
-  be: [2.5, 49.5, 6.4, 51.5],
-  dk: [8.0, 54.5, 15.2, 57.8],
-  at: [9.5, 46.3, 17.2, 49.0],
-  cz: [12.0, 48.5, 19.0, 51.1],
-  sk: [16.8, 47.7, 22.6, 49.6],
-  pl: [14.1, 49.0, 24.2, 54.9],
-  hu: [16.0, 45.7, 22.9, 48.6],
-  ro: [20.2, 43.6, 29.7, 48.3],
-  it: [6.6, 36.0, 18.5, 47.1],
-};
 
 let worker: Worker | null = null;
 const pendingRequests = new Map<string, (data: FeatureCollection) => void>();
@@ -64,7 +56,17 @@ function fetchViaWorker(url: string): Promise<FeatureCollection> {
 
 const detailLoadingSet = new Set<CountryCode>();
 
+/**
+ * Detail polygons, for the GeoJSON renderer only.
+ *
+ * In PMTiles mode nothing reads these - the tiles draw the areas and
+ * `lib/plzIndex` answers the lookups - yet they were fetched anyway: up to
+ * 55 MB across 44,331 features, Germany alone 10.9 MB, downloaded and parsed
+ * on a phone for nothing. Search and the stop builder no longer depend on
+ * them, so production can skip them entirely.
+ */
 export function loadDetailForCountries(codes: CountryCode[]) {
+  if (USE_PMTILES) return;
   const store = useMapStore.getState();
   const toLoad = codes.filter(c => !store.detailData[c] && !detailLoadingSet.has(c));
   if (toLoad.length === 0) return;
@@ -100,7 +102,7 @@ export function useMapData() {
   const overviewDataMap = useMapStore((s) => s.overviewData);
 
   useEffect(() => {
-    const { setOverviewData, setLoading, overviewData } = useMapStore.getState();
+    const { setLoading, overviewData } = useMapStore.getState();
     const toLoad = enabledCountries.filter(c => !overviewData[c]);
 
     if (toLoad.length === 0) {
@@ -108,7 +110,12 @@ export function useMapData() {
       return;
     }
 
-    setLoading(true);
+    // In PMTiles mode the tiles draw the map and `lib/plzIndex` answers the
+    // lookups; the overview GeoJSON (7 MB) is read by the region list alone.
+    // Blocking the whole sidebar behind it meant a phone stared at a skeleton
+    // while it downloaded. It still loads, in the background, and the region
+    // list fills in when it arrives.
+    setLoading(USE_PMTILES ? false : true);
 
     const initialBounds = { west: -2, south: 44, east: 20, north: 56 };
     const priority = toLoad.filter(code => {
@@ -137,7 +144,6 @@ export function useMapData() {
           useMapStore.getState().setLoading(false);
         }
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

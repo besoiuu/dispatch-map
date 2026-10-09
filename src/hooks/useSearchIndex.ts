@@ -1,62 +1,40 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import {
+  isPlzIndexReady,
+  loadPlzIndex,
+  searchPlz,
+  subscribePlzIndex,
+  type PlzEntry,
+  type SearchOptions,
+} from '@/lib/plzIndex';
 
-interface SearchIndexEntry {
-  country: string;
-  plz: string;
-  name: string;
-  lng: number;
-  lat: number;
-}
+export type SearchIndexResult = PlzEntry;
 
-let cachedIndex: SearchIndexEntry[] | null = null;
-
-export interface SearchIndexResult {
-  plz: string;
-  name: string;
-  country: string;
-  lng: number;
-  lat: number;
-}
-
+/**
+ * React access to the shared index in `lib/plzIndex`. The data itself lives
+ * outside React because the route store and the stop builder need it too,
+ * and they are not components.
+ */
 export function useSearchIndex() {
-  const [index, setIndex] = useState<SearchIndexEntry[] | null>(cachedIndex);
+  // useSyncExternalStore rather than useState + useEffect: the index is an
+  // external store, and setting state from an effect body is what the
+  // react-hooks lint rule flags (and it cost a render pass per load).
+  const ready = useSyncExternalStore(subscribePlzIndex, isPlzIndexReady, () => false);
 
   useEffect(() => {
-    if (cachedIndex) return;
-    fetch('/data/search-index.json')
-      .then((r) => r.json())
-      .then((data: [string, string, string, number, number][]) => {
-        const entries = data.map(([country, plz, name, lng, lat]) => ({ country, plz, name, lng, lat }));
-        cachedIndex = entries;
-        setIndex(entries);
-      })
-      .catch(() => {});
+    loadPlzIndex();
   }, []);
 
   const search = useCallback(
-    (query: string, limit = 20): SearchIndexResult[] => {
-      if (!index || !query || query.length < 2) return [];
-      const q = query.toLowerCase();
-      const exact: SearchIndexResult[] = [];
-      const prefix: SearchIndexResult[] = [];
-      const nameMatch: SearchIndexResult[] = [];
-      for (const entry of index) {
-        const r = { plz: entry.plz, name: entry.name, country: entry.country.toUpperCase(), lng: entry.lng, lat: entry.lat };
-        if (entry.plz === q) {
-          exact.push(r);
-        } else if (entry.plz.startsWith(q)) {
-          prefix.push(r);
-        } else if (entry.name.toLowerCase().includes(q)) {
-          nameMatch.push(r);
-        }
-        if (exact.length + prefix.length + nameMatch.length >= limit * 3) break;
-      }
-      return [...exact, ...prefix, ...nameMatch].slice(0, limit);
-    },
-    [index]
+    (query: string, opts: SearchOptions = {}) => searchPlz(query, opts),
+    // `ready` is the dependency on purpose: `searchPlz` reads module state,
+    // so this callback's identity has to change once the data lands or a memo
+    // built on it keeps serving the empty result it computed first.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ready]
   );
 
-  return { search, ready: index !== null };
+  return { search, ready };
 }

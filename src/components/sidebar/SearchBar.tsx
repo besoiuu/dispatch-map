@@ -1,90 +1,72 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import type { FeatureCollection, Feature, Position } from 'geojson';
-import { useSearch } from '@/hooks/useSearch';
 import { useSearchIndex } from '@/hooks/useSearchIndex';
+import { entryKey, parseQuery, type PlzEntry } from '@/lib/plzIndex';
 import { useMapStore } from '@/store/mapStore';
 import { useRouteStore } from '@/store/routeStore';
-import { countries } from '@/config/countries';
+import { useToastStore } from '@/store/toastStore';
+import { countries, enabledCountries } from '@/config/countries';
 
-function featureBbox(feature: Feature): [number, number, number, number] {
-  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
-  const processCoord = (coord: Position) => {
-    if (coord[0] < minLng) minLng = coord[0];
-    if (coord[1] < minLat) minLat = coord[1];
-    if (coord[0] > maxLng) maxLng = coord[0];
-    if (coord[1] > maxLat) maxLat = coord[1];
-  };
-  const processCoords = (coords: Position[] | Position[][] | Position[][][]) => {
-    for (const item of coords) {
-      if (typeof item[0] === 'number') {
-        processCoord(item as Position);
-      } else {
-        processCoords(item as Position[][] | Position[][][]);
-      }
-    }
-  };
-  const geom = feature.geometry;
-  if ('coordinates' in geom) {
-    processCoords(geom.coordinates as Position[] | Position[][] | Position[][][]);
-  }
-  return [minLng, minLat, maxLng, maxLat];
-}
+/** Zoom that frames a single postal area without hunting for its polygon. */
+const PLZ_ZOOM = 11;
+const ADDRESS_ZOOM = 14;
 
 interface GeoResult {
   type: 'geo';
   name: string;
-  displayName: string;
-  shortLabel: string;
+  context: string;
   country?: string;
   lat: number;
   lng: number;
 }
 
-interface PlzResult {
+interface PlzResult extends PlzEntry {
   type: 'plz';
-  plz: string;
-  name?: string;
-  country?: string;
-  feature: Feature;
-  lng?: number;
-  lat?: number;
 }
 
 type SearchResultItem = PlzResult | GeoResult;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function buildGeoLabel(item: any): { name: string; shortLabel: string } {
+function buildGeoLabel(item: any): { name: string; context: string } {
   const addr = item.address || {};
   const road = addr.road || addr.pedestrian || addr.path || '';
   const houseNumber = addr.house_number || '';
   const city = addr.city || addr.town || addr.village || addr.municipality || addr.hamlet || '';
   const postcode = addr.postcode || '';
+  const display = String(item.display_name ?? '');
 
-  const street = road && houseNumber ? `${road} ${houseNumber}` : road || item.name || item.display_name.split(',')[0];
-  const shortLabel = city ? `${street}, ${city}` : street;
-  const name = postcode && city ? `${street}, ${postcode} ${city}` : shortLabel;
-
-  return { name, shortLabel };
+  const street =
+    road && houseNumber ? `${road} ${houseNumber}` : road || item.name || display.split(',')[0];
+  const where = [postcode, city].filter(Boolean).join(' ');
+  return { name: street, context: where || display.split(',').slice(1, 3).join(',').trim() };
 }
 
-async function geocodeSearch(query: string): Promise<GeoResult[]> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&viewbox=-10,35,30,60&bounded=0&addressdetails=1`;
+/**
+ * Free-text geocoding, restricted to the countries this map covers.
+ *
+ * `countrycodes` is the part that was missing: without it Nominatim answers
+ * a query with whatever is nearest anywhere, which is what made the
+ * suggestions feel like near-misses. The viewbox alone constrained nothing,
+ * because `bounded=0` makes it a ranking hint rather than a filter.
+ */
+async function geocodeSearch(query: string, country: string | null): Promise<GeoResult[]> {
+  const codes = country ?? enabledCountries.join(',');
+  const url =
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}` +
+    `&limit=5&addressdetails=1&countrycodes=${codes}`;
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'DispatchMap/1.0' },
-    });
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
     if (!res.ok) return [];
     const data = await res.json();
+    if (!Array.isArray(data)) return [];
     return data.map((item: any) => {
-      const { name, shortLabel } = buildGeoLabel(item);
+      const { name, context } = buildGeoLabel(item);
       return {
         type: 'geo' as const,
         name,
-        shortLabel,
+        context,
         country: (item.address?.country_code ?? '').toUpperCase() || undefined,
-        displayName: item.display_name,
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon),
       };
@@ -95,189 +77,148 @@ async function geocodeSearch(query: string): Promise<GeoResult[]> {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-interface SearchBarProps {
-  detailData: FeatureCollection | null;
-}
-
-export function SearchBar({ detailData }: SearchBarProps) {
+export function SearchBar() {
   const activeCountry = useMapStore((s) => s.activeCountry);
   const setHighlightedPlz = useMapStore((s) => s.setHighlightedPlz);
   const activeRouteId = useRouteStore((s) => s.activeRouteId);
+  const routes = useRouteStore((s) => s.routes);
   const addWaypoint = useRouteStore((s) => s.addWaypoint);
-  const config = countries[activeCountry];
-  const { query, setQuery, results: plzResultsGeo, clear } = useSearch(
-    detailData,
-    config.detailPropertyKey
-  );
-  const { search: searchIndex } = useSearchIndex();
-  const [open, setOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
-  const [geoLoading, setGeoLoading] = useState(false);
+  const addPlzToActiveRoute = useRouteStore((s) => s.addPlzToActiveRoute);
+  const addToast = useToastStore((s) => s.addToast);
+  const { search: searchIndex, ready } = useSearchIndex();
+
+  const [query, setQuery] = useState('');
+  const [dismissed, setDismissed] = useState(false);
+  // Paired with the query it belongs to, so a new query resets the cursor
+  // without an effect that writes state during render.
+  const [cursor, setCursor] = useState<{ q: string; i: number }>({ q: '', i: 0 });
+  const [geo, setGeo] = useState<{ q: string; results: GeoResult[] }>({ q: '', results: [] });
   const geoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const indexResults = useMemo(() => {
-    if (!query || query.length < 2) return [];
-    return searchIndex(query, 20);
-  }, [query, searchIndex]);
+  const parsed = useMemo(() => parseQuery(query), [query]);
 
-  const plzResults: PlzResult[] = indexResults.length > 0
-    ? indexResults.map((r) => {
-        // The country MUST be part of this lookup. plzResultsGeo spans
-        // every visible country (Sidebar merges them and tags each feature
-        // with _country), and 890 postal codes exist in both Austria and
-        // the Netherlands alone — 1060 is Wien Mariahilf AND Amsterdam.
-        // Matching on the code alone attached whichever country came first
-        // in enabledCountries ('de','nl',…,'at',…), so searching an
-        // Austrian code found the right index entry and then flew to the
-        // Dutch polygon, because selectResult prefers feature over lng/lat.
-        const geoMatch = plzResultsGeo.find(
-          (g) => g.plz === r.plz && g.country === r.country
-        );
-        return {
-          type: 'plz' as const,
-          plz: r.plz,
-          name: r.name,
-          country: r.country,
-          feature: geoMatch?.feature ?? null as unknown as Feature,
-          lng: r.lng,
-          lat: r.lat,
-        };
-      })
-    : plzResultsGeo.map((r) => ({ type: 'plz' as const, ...r }));
+  const plzResults: PlzResult[] = useMemo(() => {
+    if (!ready) return [];
+    return searchIndex(query, { activeCountry, limit: 12 }).map((e) => ({ ...e, type: 'plz' as const }));
+  }, [query, activeCountry, searchIndex, ready]);
 
-  const allResults: SearchResultItem[] = [
-    ...plzResults,
-    ...geoResults,
-  ];
+  // The geocoder is consulted ALONGSIDE the index, not only when the index
+  // comes up empty. A street address in a town whose postal code happens to
+  // prefix-match was previously unreachable: any index hit suppressed it.
+  const geoResults = geo.q === query ? geo.results : [];
+
+  // Pure postal codes are answered by the index; anything carrying a letter is
+  // the kind of thing only a geocoder can resolve.
+  const worthGeocoding = parsed.text.length >= 3 && /[^\d\s]/.test(parsed.text);
+  // Derived rather than stored: an answer for this exact query means done,
+  // and a failed request still records the query with no results.
+  const geoLoading = worthGeocoding && geo.q !== query;
 
   useEffect(() => {
-    setSelectedIndex(0);
-    if (plzResults.length > 0) {
-      setOpen(true);
-      setGeoResults([]);
-      return;
-    }
-
     if (geoTimerRef.current) clearTimeout(geoTimerRef.current);
-
-    if (!query || query.length < 3) {
-      setGeoResults([]);
-      setOpen(false);
-      return;
-    }
-
-    setGeoLoading(true);
-    geoTimerRef.current = setTimeout(async () => {
-      const results = await geocodeSearch(query);
-      setGeoResults(results);
-      setGeoLoading(results.length === 0 && false);
-      setOpen(results.length > 0);
-      setGeoLoading(false);
-    }, 500);
-
+    if (!worthGeocoding) return;
+    const q = query;
+    geoTimerRef.current = setTimeout(() => {
+      geocodeSearch(parsed.text, parsed.country).then((results) => setGeo({ q, results }));
+    }, 450);
     return () => {
       if (geoTimerRef.current) clearTimeout(geoTimerRef.current);
     };
-  }, [query, indexResults, plzResultsGeo]);
+  }, [query, parsed.text, parsed.country, worthGeocoding]);
 
-  const flyToFeature = useCallback(
-    (plz: string, feature: GeoJSON.Feature) => {
-      setHighlightedPlz(plz);
-      setTimeout(() => setHighlightedPlz(null), 2000);
-      const bbox = featureBbox(feature);
-      window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox, plz } }));
-      clear();
-      setOpen(false);
-      setGeoResults([]);
-    },
-    [setHighlightedPlz, clear]
-  );
+  const allResults: SearchResultItem[] = [...plzResults, ...geoResults];
+  const open = !dismissed && allResults.length > 0;
+  const selectedIndex = cursor.q === query ? Math.min(cursor.i, allResults.length - 1) : 0;
 
-  const flyToGeo = useCallback(
-    (result: GeoResult) => {
-      const pad = 0.02;
-      const bbox = [result.lng - pad, result.lat - pad, result.lng + pad, result.lat + pad];
-      window.dispatchEvent(new CustomEvent('map:flyto', { detail: { bbox } }));
+  const reset = useCallback(() => {
+    setQuery('');
+    setDismissed(false);
+    setGeo({ q: '', results: [] });
+  }, []);
 
-      if (activeRouteId) {
-        addWaypoint(activeRouteId, [result.lng, result.lat], undefined, result.name);
-      }
+  const flyTo = useCallback((lng: number, lat: number, zoom: number) => {
+    window.dispatchEvent(new CustomEvent('map:flyto', { detail: { center: [lng, lat], zoom } }));
+  }, []);
 
-      clear();
-      setOpen(false);
-      setGeoResults([]);
-    },
-    [activeRouteId, addWaypoint, clear]
-  );
-
-  const addPlzToActiveRoute = useRouteStore((s) => s.addPlzToActiveRoute);
   const selectResult = useCallback(
     (item: SearchResultItem) => {
       if (item.type === 'plz') {
-        if (item.feature) {
-          flyToFeature(item.plz, item.feature);
+        const prefixed = entryKey(item.country, item.plz);
+        flyTo(item.lng, item.lat, PLZ_ZOOM);
+        setHighlightedPlz(prefixed);
+        setTimeout(() => setHighlightedPlz(null), 2500);
+
+        const label = item.name ? `${item.plz} ${item.name}` : item.plz;
+        const outcome = addPlzToActiveRoute(prefixed, { coordinate: [item.lng, item.lat], label });
+
+        if (outcome === 'no-route') {
+          addToast('Create or select a route first', 'info');
+        } else if (outcome === 'duplicate') {
+          const holder = routes.find((r) => r.plzCodes.includes(prefixed));
+          addToast(`${item.plz} is already in ${holder?.name ?? 'another route'}`, 'info');
         } else {
-          const cc = (item.country ?? '').toLowerCase();
-          if (item.lng && item.lat) {
-            const pad = 0.02;
-            window.dispatchEvent(new CustomEvent('map:flyto', {
-              detail: { bbox: [item.lng - pad, item.lat - pad, item.lng + pad, item.lat + pad] }
-            }));
-            setHighlightedPlz(item.plz);
-            setTimeout(() => setHighlightedPlz(null), 2000);
-          }
-          if (cc && activeRouteId) {
-            addPlzToActiveRoute(`${cc}:${item.plz}`);
-          }
-          clear();
-          setOpen(false);
-          setGeoResults([]);
+          addToast(`${label} added`);
         }
       } else {
-        flyToGeo(item);
+        flyTo(item.lng, item.lat, ADDRESS_ZOOM);
+        if (!activeRouteId) {
+          addToast('Create or select a route first', 'info');
+        } else {
+          const label = item.context ? `${item.name}, ${item.context}` : item.name;
+          addWaypoint(activeRouteId, [item.lng, item.lat], undefined, label);
+          addToast(`${item.name} added as waypoint`);
+        }
       }
+      reset();
     },
-    [flyToFeature, flyToGeo, activeRouteId, addPlzToActiveRoute, clear]
+    [flyTo, setHighlightedPlz, addPlzToActiveRoute, addToast, routes, activeRouteId, addWaypoint, reset]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((i) => Math.min(i + 1, allResults.length - 1));
+      setDismissed(false);
+      setCursor({ q: query, i: Math.min(selectedIndex + 1, allResults.length - 1) });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter' && allResults[selectedIndex]) {
+      setCursor({ q: query, i: Math.max(selectedIndex - 1, 0) });
+    } else if (e.key === 'Enter' && open && allResults[selectedIndex]) {
       selectResult(allResults[selectedIndex]);
     } else if (e.key === 'Escape') {
-      setOpen(false);
-      clear();
-      setGeoResults([]);
+      if (open) setDismissed(true);
+      else reset();
     }
   };
+
+  const countryHint = parsed.country ? countries[parsed.country]?.name : null;
+  const listId = 'search-results';
 
   return (
     <div className="relative">
       <input
-        ref={inputRef}
         type="text"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setDismissed(false);
+        }}
         onKeyDown={handleKeyDown}
-        onFocus={() => allResults.length > 0 && setOpen(true)}
-        placeholder="Search postal code or place..."
-        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800/50 dark:focus:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-all"
+        onFocus={() => setDismissed(false)}
+        inputMode="search"
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-label="Search postal code, place or address"
+        placeholder="Postal code, place, or DE 27576"
+        className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-3.5 pr-12 text-base md:text-sm shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800/50 dark:focus:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 transition-all"
       />
       {(query || geoLoading) && (
         <button
-          onClick={() => {
-            clear();
-            setOpen(false);
-            setGeoResults([]);
-          }}
-          className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors rounded-full p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          onClick={reset}
+          aria-label="Clear search"
+          className="cursor-pointer absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           {geoLoading ? (
             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -291,43 +232,58 @@ export function SearchBar({ detailData }: SearchBarProps) {
           )}
         </button>
       )}
-      {open && allResults.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-gray-200/80 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/10">
+      {countryHint && !open && (
+        <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">Searching {countryHint} only</p>
+      )}
+      {open && (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl border border-gray-200/80 bg-white shadow-xl ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10"
+        >
           {allResults.map((r, i) => (
-            <li key={r.type === 'plz' ? `plz-${r.plz}` : `geo-${i}`}>
+            <li
+              // Keyed by the pair plus position: the same code legitimately
+              // appears twice (AT 1040 "Wien, Wieden") and 3,423 codes exist
+              // in more than one country. Keying on `plz` alone gave two rows
+              // the same key, and React then ran the wrong row's handler.
+              key={r.type === 'plz' ? `plz-${entryKey(r.country, r.plz)}-${i}` : `geo-${r.lat},${r.lng}-${i}`}
+              role="option"
+              aria-selected={i === selectedIndex}
+            >
               <button
                 onClick={() => selectResult(r)}
-                className={`cursor-pointer w-full px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-gray-700 ${
+                className={`cursor-pointer flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-gray-700 ${
                   i === selectedIndex ? 'bg-blue-50 dark:bg-gray-700' : ''
                 }`}
               >
                 {r.type === 'plz' ? (
-                  <div className="flex items-center gap-2">
-                    {r.country && (
-                      <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded px-1 py-0.5 shrink-0">{r.country}</span>
-                    )}
-                    <span className="font-medium dark:text-gray-200">{r.plz}</span>
-                    {r.name && (
-                      <span className="text-gray-500 dark:text-gray-400 truncate">{r.name}</span>
-                    )}
-                  </div>
+                  <>
+                    <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[10px] font-bold uppercase text-gray-400 dark:bg-gray-700 dark:text-gray-400">
+                      {r.country}
+                    </span>
+                    <span className="font-medium tabular-nums dark:text-gray-200">{r.plz}</span>
+                    {r.name && <span className="truncate text-gray-500 dark:text-gray-400">{r.name}</span>}
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-gray-300 dark:text-gray-600">
+                      Area
+                    </span>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    {r.country ? (
-                      <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded px-1 py-0.5 shrink-0">{r.country}</span>
-                    ) : (
-                      <svg className="h-3.5 w-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    )}
-                    <div className="min-w-0">
-                      <span className="font-medium dark:text-gray-200">{r.name}</span>
-                      <span className="ml-1 text-xs text-gray-400 dark:text-gray-500 truncate block">
-                        {r.displayName.split(',').slice(1, 3).join(',')}
-                      </span>
-                    </div>
-                  </div>
+                  <>
+                    <svg className="h-4 w-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium dark:text-gray-200">{r.name}</span>
+                      {r.context && (
+                        <span className="block truncate text-xs text-gray-400 dark:text-gray-500">{r.context}</span>
+                      )}
+                    </span>
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-gray-300 dark:text-gray-600">
+                      Waypoint
+                    </span>
+                  </>
                 )}
               </button>
             </li>

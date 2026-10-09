@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test \"tests/*.test.ts\"",
     "preprocess": "tsx scripts/preprocess.ts",
     "preprocess:de": "tsx scripts/preprocess.ts --country de",
     "generate-tiles": "tsx scripts/generate-tiles.ts"

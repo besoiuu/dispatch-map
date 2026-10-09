@@ -38,7 +38,9 @@ export const countries: Record<CountryCode, CountryConfig> = {
     defaultZoom: 6,
     overviewDigits: 2,
     postcodeLength: 2,
-    postcodeFormat: /^\d{2}[AB]?$/,
+    // Corsica's department codes are 2A and 2B - two characters, one digit -
+    // so `\d{2}[AB]?` never matched them. The data uses both.
+    postcodeFormat: /^(\d{2}|2[AB])$/,
     detailPath: '/data/fr/dept.geojson',
     overviewPath: '/data/fr/regions.geojson',
     overviewZoomThreshold: 9,

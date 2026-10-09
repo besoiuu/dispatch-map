@@ -12,11 +12,17 @@ export type TileMetadata = Partial<Record<CountryCode, TileMetadataEntry>>;
 
 let cachedMetadata: TileMetadata | null = null;
 
-export function useTileMetadata(): TileMetadata | null {
+/**
+ * `enabled` exists so this can be called unconditionally. MapShell used to
+ * call it behind `USE_PMTILES ? useTileMetadata() : null`, which is a hook in
+ * a conditional - it happened to be stable only because the flag comes from
+ * the build environment.
+ */
+export function useTileMetadata(enabled = true): TileMetadata | null {
   const [metadata, setMetadata] = useState<TileMetadata | null>(cachedMetadata);
 
   useEffect(() => {
-    if (cachedMetadata) return;
+    if (!enabled || cachedMetadata) return;
     fetch('/tiles/metadata.json')
       .then((r) => r.json())
       .then((data) => {
@@ -24,7 +30,7 @@ export function useTileMetadata(): TileMetadata | null {
         setMetadata(data);
       })
       .catch(() => setMetadata(null));
-  }, []);
+  }, [enabled]);
 
-  return metadata;
+  return enabled ? metadata : null;
 }

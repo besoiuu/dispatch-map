@@ -58,6 +58,7 @@ let colorBlindMode = false;
 export function setColorBlindMode(enabled: boolean) {
   colorBlindMode = enabled;
   regionColorCache.clear();
+  fadedColorCache.clear();
 }
 
 const regionColorCache = new Map<string, string>();
@@ -75,11 +76,51 @@ export function getRegionColor(plz2: string): string {
   return color;
 }
 
+const fadedColorCache = new Map<string, string>();
+
 export function getRegionColorFaded(plz2: string, dark = false): string {
+  // Cached like `getRegionColor`: this is called once per region every time a
+  // colour expression is rebuilt, which is on every route change.
+  const key = `${countryHueMode}:${plz2}:${dark ? 'd' : 'l'}${colorBlindMode ? ':cb' : ''}`;
+  const hit = fadedColorCache.get(key);
+  if (hit) return hit;
   const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
   const fadedSat = colorBlindMode ? 15 : 40;
-  if (dark) return hslToHex(hue, colorBlindMode ? 20 : 35, 25);
-  return hslToHex(hue, fadedSat, 78);
+  const color = dark
+    ? hslToHex(hue, colorBlindMode ? 20 : 35, 25)
+    : hslToHex(hue, fadedSat, 78);
+  fadedColorCache.set(key, color);
+  return color;
+}
+
+/**
+ * Black or white, whichever can actually be read on `background`.
+ *
+ * Route badges and map pins painted white text onto the route colour. Five of
+ * the sixteen route colours are pale enough that white on them is close to
+ * invisible (#bfef45, #fabed4, #aaffc3, #dcbeff, #42d4f4), and several of the
+ * mid-tones are not much better: white on #3cb44b is 2.7:1, on #f58231 2.6:1,
+ * on the green used for the first pin 2.3:1. Which route got which colour
+ * depended on the order routes were created in, so it looked intermittent.
+ *
+ * The rule is "white unless white fails", not "whichever has more contrast".
+ * Both guarantee a pass - if white is under 4.5:1 then black is necessarily
+ * over 4.67:1 - but pure max-contrast flips on near-ties and puts black text
+ * on crimson, where white reads better and is already 4.56:1. A luminance
+ * threshold cannot promise either: the obvious 0.5 cut-off chose white for
+ * exactly the mid-tones listed above.
+ */
+export function textOn(background: string): '#000000' | '#ffffff' {
+  const hex = background.replace('#', '');
+  const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+  if (!/^[0-9a-f]{6}$/i.test(full)) return '#ffffff';
+  const channel = (i: number) => {
+    const v = parseInt(full.slice(i * 2, i * 2 + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const l = 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
+  const againstWhite = 1.05 / (l + 0.05);
+  return againstWhite >= 4.5 ? '#ffffff' : '#000000';
 }
 
 export function buildRegionColorExpression(

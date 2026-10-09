@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { Source, Layer, Marker } from 'react-map-gl/maplibre';
-import type { FeatureCollection } from 'geojson';
+import { useMemo } from 'react';
+import { Source, Layer } from 'react-map-gl/maplibre';
+import { RouteMarkers } from './RouteMarkers';
+import { CountryBorders } from './CountryBorders';
 import type { CountryCode } from '@/types/country';
 import { useMapStore } from '@/store/mapStore';
 import { useRouteStore } from '@/store/routeStore';
@@ -63,68 +64,7 @@ export function PlzLayersPMTiles({ tileMetadata, highlightedPlz }: PlzLayersPMTi
             <Layer id={`route-line-fill-${r.id}`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': r.color, 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 4, 14, 5], 'line-opacity': 1 }} />
           </Source>
         ))}
-      {routes
-        .filter((r) => r.visible && r.stops.length > 0)
-        .flatMap((r) => {
-          let plzIndex = 0;
-          let wpIndex = 0;
-          return r.stops.map((s, i) => {
-            const isWaypoint = s.type === 'waypoint';
-            const rawPlz = s.plz ?? s.label ?? '';
-            const parts = rawPlz.split(':');
-            const displayCode = parts.length > 1 ? parts[1] : rawPlz;
-            const fullLabel = s.label ?? displayCode;
-            const labelParts = fullLabel.split(',');
-            const shortLabel = labelParts.length > 1
-              ? `${labelParts[0].trim()}, ${labelParts[1].trim()}`.slice(0, 30)
-              : fullLabel.slice(0, 25);
-            const isFirst = i === 0;
-            const isLast = i === r.stops.length - 1;
-            const pinColor = isFirst ? '#22c55e' : isLast ? '#ef4444' : r.color;
-
-            let markerContent: string;
-            if (isWaypoint) {
-              wpIndex++;
-              markerContent = String(wpIndex);
-            } else {
-              markerContent = String.fromCharCode(65 + plzIndex);
-              plzIndex++;
-            }
-
-            return (
-              <Marker
-                key={`stop-${r.id}-${s.id}`}
-                longitude={s.coordinate[0]}
-                latitude={s.coordinate[1]}
-                anchor="bottom"
-              >
-                <div className="flex flex-col items-center group">
-                  {isWaypoint ? (
-                    <div
-                      className="relative flex items-center justify-center text-white font-bold shadow-lg transition-all duration-150"
-                      style={{ backgroundColor: pinColor, width: 24, height: 24, fontSize: 11, border: '2px solid white', borderRadius: 4, transform: 'rotate(45deg)', boxShadow: `0 2px 8px ${pinColor}66` }}
-                    >
-                      <span style={{ transform: 'rotate(-45deg)' }}>{markerContent}</span>
-                    </div>
-                  ) : (
-                    <div
-                      className="relative flex items-center justify-center rounded-full text-white font-bold shadow-lg transition-all duration-150"
-                      style={{ backgroundColor: pinColor, width: 28, height: 28, fontSize: 13, border: '2.5px solid white', boxShadow: `0 2px 8px ${pinColor}66` }}
-                    >
-                      {markerContent}
-                    </div>
-                  )}
-                  <svg width="14" height="10" viewBox="0 0 14 10" className="-mt-[3px]" style={{ filter: `drop-shadow(0 1px 2px ${pinColor}44)` }}>
-                    <path d="M0 0 L7 9 L14 0" fill={pinColor} stroke="white" strokeWidth="2" strokeLinejoin="round" />
-                  </svg>
-                  <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900/85 px-1.5 py-0.5 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    {shortLabel}
-                  </div>
-                </div>
-              </Marker>
-            );
-          });
-        })}
+      <RouteMarkers />
     </>
   );
 }
@@ -155,6 +95,10 @@ function CountryLayersPMTiles({
   const overviewUrl = `pmtiles://${typeof window !== 'undefined' ? window.location.origin : ''}/tiles/${code}/overview.pmtiles`;
   const detailUrl = `pmtiles://${typeof window !== 'undefined' ? window.location.origin : ''}/tiles/${code}/detail.pmtiles`;
 
+  // `colorBlind` is a cache key: the colour helpers read a module-level mode
+  // that `setColorBlindMode` flips, so the expression has to be rebuilt when
+  // it changes even though it is not referenced here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const plz2FillColor = useMemo(() => buildRegionColorExpression(plz2Codes, opk), [plz2Codes, opk, colorBlind]);
 
   const plz5FillColor = useMemo(() => {
@@ -180,6 +124,7 @@ function CountryLayersPMTiles({
     }
     if (pairs.length === 0) return fadedExpr;
     return ['match', ['get', dpk], ...pairs, fadedExpr];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routes, dpk, code, plz2Codes, dark, colorBlind]);
 
   const plz5FillOpacity = useMemo(() => {
@@ -197,7 +142,15 @@ function CountryLayersPMTiles({
   const hoveredPlz2 = hoveredFeatureId && hoveredFeatureId.length >= 2 ? hoveredFeatureId.slice(0, 2) : null;
   const hoverFilter = hoveredFeatureId ? ['==', ['get', dpk], hoveredFeatureId] : ['==', ['get', dpk], ''];
   const neighborFilter = hoveredPlz2 ? ['==', ['get', 'plz2'], hoveredPlz2] : ['==', ['get', 'plz2'], ''];
-  const highlightFilter = highlightedPlz ? ['==', ['get', dpk], highlightedPlz] : ['==', ['get', dpk], ''];
+  // "de:27576" -> only the DE layer matches 27576. Passing the bare code made
+  // every country's layer light up its own area with those digits.
+  const highlightedHere =
+    highlightedPlz && highlightedPlz.startsWith(`${code}:`)
+      ? highlightedPlz.slice(code.length + 1)
+      : null;
+  const highlightFilter = highlightedHere
+    ? ['==', ['get', dpk], highlightedHere]
+    : ['==', ['get', dpk], ''];
 
   return (
     <>
@@ -252,25 +205,3 @@ function CountryLayersPMTiles({
   );
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
-function CountryBorders({ dark }: { dark: boolean }) {
-  const [data, setData] = useState<FeatureCollection | null>(null);
-
-  useEffect(() => {
-    fetch('/data/borders.geojson')
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {});
-  }, []);
-
-  if (!data) return null;
-
-  return (
-    <Source id="country-borders" type="geojson" data={data}>
-      <Layer id="country-borders-glow" type="line"
-        paint={{ 'line-color': dark ? '#000000' : '#1e293b', 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 6, 6, 10, 10, 14], 'line-blur': ['interpolate', ['linear'], ['zoom'], 3, 4, 6, 6, 10, 8], 'line-opacity': 0.4 }} />
-      <Layer id="country-borders-line" type="line"
-        paint={{ 'line-color': dark ? '#e2e8f0' : '#0f172a', 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1, 6, 2, 10, 3], 'line-opacity': 0.9, 'line-dasharray': [4, 2] }} />
-    </Source>
-  );
-}

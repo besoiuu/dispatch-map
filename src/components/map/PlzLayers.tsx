@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { Source, Layer, Marker, type LayerProps } from 'react-map-gl/maplibre';
+import { useMemo } from 'react';
+import { Source, Layer } from 'react-map-gl/maplibre';
+import { RouteMarkers } from './RouteMarkers';
+import { CountryBorders } from './CountryBorders';
 import type { Feature, FeatureCollection, Point, Position } from 'geojson';
 import type { CountryCode } from '@/types/country';
 import { useMapStore } from '@/store/mapStore';
@@ -10,12 +12,10 @@ import { useThemeStore } from '@/store/themeStore';
 import { countries, enabledCountries } from '@/config/countries';
 import {
   buildRegionColorExpression,
-  buildFadedRegionColorExpression,
   getRegionColorFaded,
   setCountryHueContext,
   setColorBlindMode,
 } from '@/lib/colors';
-import { formatDistance } from '@/lib/routing';
 
 interface PlzLayersProps {
   detailDataMap: Partial<Record<CountryCode, FeatureCollection>>;
@@ -65,35 +65,6 @@ function computeOverviewPoints(data: FeatureCollection): FeatureCollection<Point
   return { type: 'FeatureCollection', features };
 }
 
-function findCountryForCoord(
-  coord: [number, number],
-  dataMap: Partial<Record<CountryCode, FeatureCollection>>
-): string | null {
-  const [lng, lat] = coord;
-  for (const code of enabledCountries) {
-    const data = dataMap[code];
-    if (!data) continue;
-    for (const f of data.features) {
-      if (!f.geometry || !('coordinates' in f.geometry)) continue;
-      const bbox = f.properties?.bbox;
-      if (bbox && (lng < bbox[0] || lng > bbox[2] || lat < bbox[1] || lat > bbox[3])) continue;
-      return code.toUpperCase();
-    }
-  }
-  // Fallback: rough bbox check
-  if (lat > 54.5 && lng > 8 && lng < 15.5) return 'DK';
-  if (lat > 51 && lat < 54 && lng > 3.3 && lng < 7.2) return 'NL';
-  if (lat > 49.5 && lat < 51.5 && lng > 2.5 && lng < 6.4) return 'BE';
-  if (lat > 42 && lat < 51.1 && lng > -5 && lng < 8.2) return 'FR';
-  if (lat > 46.3 && lat < 49 && lng > 9.5 && lng < 17.2) return 'AT';
-  if (lat > 48.5 && lat < 51.1 && lng > 12 && lng < 19) return 'CZ';
-  if (lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1) return 'DE';
-  if (lat > 49 && lat < 55 && lng > 14 && lng < 24.2) return 'PL';
-  if (lat > 45.7 && lat < 48.6 && lng > 16 && lng < 22.9) return 'HU';
-  if (lat > 43.6 && lat < 48.3 && lng > 20.2 && lng < 29.7) return 'RO';
-  if (lat > 36 && lat < 47.1 && lng > 6.6 && lng < 18.5) return 'IT';
-  return null;
-}
 
 export function PlzLayers({
   detailDataMap,
@@ -141,56 +112,7 @@ export function PlzLayers({
             <Layer id={`route-line-fill-${r.id}`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': r.color, 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 4, 14, 5], 'line-opacity': 1 }} />
           </Source>
         ))}
-      {routes
-        .filter((r) => r.visible && r.stops.length > 0)
-        .flatMap((r) =>
-          r.stops.map((s, i) => {
-            const rawPlz = s.plz ?? s.label ?? '';
-            const parts = rawPlz.split(':');
-            const displayCode = parts.length > 1 ? parts[1] : rawPlz;
-            const fullLabel = s.label ?? displayCode;
-            const labelParts = fullLabel.split(',');
-            const shortLabel = labelParts.length > 1
-              ? `${labelParts[0].trim()}, ${labelParts[1].trim()}`.slice(0, 30)
-              : fullLabel.slice(0, 25);
-            const isFirst = i === 0;
-            const isLast = i === r.stops.length - 1;
-            const letter = String.fromCharCode(65 + i);
-            const pinColor = isFirst ? '#22c55e' : isLast ? '#ef4444' : r.color;
-            return (
-              <Marker
-                key={`stop-${r.id}-${s.id}`}
-                longitude={s.coordinate[0]}
-                latitude={s.coordinate[1]}
-                anchor="bottom"
-              >
-                <div className="flex flex-col items-center group">
-                  <div
-                    className="relative flex items-center justify-center rounded-full text-white font-bold shadow-lg transition-all duration-150"
-                    style={{
-                      backgroundColor: pinColor,
-                      width: 28,
-                      height: 28,
-                      fontSize: 13,
-                      border: '2.5px solid white',
-                      boxShadow: `0 2px 8px ${pinColor}66`,
-                    }}
-                  >
-                    {letter}
-                  </div>
-                  <svg width="14" height="10" viewBox="0 0 14 10" className="-mt-[3px]" style={{ filter: `drop-shadow(0 1px 2px ${pinColor}44)` }}>
-                    <path d="M0 0 L7 9 L14 0" fill={pinColor} stroke="white" strokeWidth="2" strokeLinejoin="round" />
-                  </svg>
-                  <div
-                    className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900/85 px-1.5 py-0.5 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  >
-                    {shortLabel}
-                  </div>
-                </div>
-              </Marker>
-            );
-          })
-        )}
+      <RouteMarkers />
     </>
   );
 }
@@ -245,6 +167,10 @@ function CountryLayers({
   const plz5LabelPoints = useMemo(() => detailData ? computeCentroids(detailData) : null, [detailData]);
   const plz2LabelPoints = useMemo(() => overviewData ? computeOverviewPoints(overviewData) : null, [overviewData]);
 
+  // `colorBlind` is a cache key: the colour helpers read a module-level mode
+  // that `setColorBlindMode` flips, so the expression has to be rebuilt when
+  // it changes even though it is not referenced here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const plz2FillColor = useMemo(() => buildRegionColorExpression(plz2Codes, opk), [plz2Codes, opk, colorBlind]);
 
   const plz5FillColor = useMemo(() => {
@@ -270,6 +196,7 @@ function CountryLayers({
     }
     if (pairs.length === 0) return fadedExpr;
     return ['match', ['get', dpk], ...pairs, fadedExpr];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routes, dpk, code, allPlz2Codes, dark, colorBlind]);
 
   const plz5FillOpacity = useMemo(() => {
@@ -288,7 +215,15 @@ function CountryLayers({
 
   const hoverFilter = hoveredFeatureId ? ['==', ['get', dpk], hoveredFeatureId] : ['==', ['get', dpk], ''];
   const neighborFilter = hoveredPlz2 ? ['==', ['get', 'plz2'], hoveredPlz2] : ['==', ['get', 'plz2'], ''];
-  const highlightFilter = highlightedPlz ? ['==', ['get', dpk], highlightedPlz] : ['==', ['get', dpk], ''];
+  // "de:27576" -> only the DE layer matches 27576. Passing the bare code made
+  // every country's layer light up its own area with those digits.
+  const highlightedHere =
+    highlightedPlz && highlightedPlz.startsWith(`${code}:`)
+      ? highlightedPlz.slice(code.length + 1)
+      : null;
+  const highlightFilter = highlightedHere
+    ? ['==', ['get', dpk], highlightedHere]
+    : ['==', ['get', dpk], ''];
 
   return (
     <>
@@ -352,42 +287,3 @@ function CountryLayers({
   );
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
-function CountryBorders({ dark }: { dark: boolean }) {
-  const [data, setData] = useState<FeatureCollection | null>(null);
-
-  useEffect(() => {
-    fetch('/data/borders.geojson')
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {});
-  }, []);
-
-  if (!data) return null;
-
-  return (
-    <Source id="country-borders" type="geojson" data={data}>
-      <Layer
-        id="country-borders-glow"
-        type="line"
-        paint={{
-          'line-color': dark ? '#000000' : '#1e293b',
-          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 6, 6, 10, 10, 14],
-          'line-blur': ['interpolate', ['linear'], ['zoom'], 3, 4, 6, 6, 10, 8],
-          'line-opacity': 0.4,
-        }}
-      />
-      <Layer
-        id="country-borders-line"
-        type="line"
-        paint={{
-          'line-color': dark ? '#e2e8f0' : '#0f172a',
-          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1, 6, 2, 10, 3],
-          'line-opacity': 0.9,
-          'line-dasharray': [4, 2],
-        }}
-      />
-    </Source>
-  );
-}
-

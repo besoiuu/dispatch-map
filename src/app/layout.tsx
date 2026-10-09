@@ -28,8 +28,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Pinch-zoom stays available. It was pinned at 1 with `userScalable: false`,
+  // which blocks magnifying the sidebar - the map has its own zoom, the text
+  // next to it had none. The 16px inputs below are what actually prevents the
+  // iOS focus-zoom that locking the scale was reaching for.
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: 'cover',
   themeColor: '#2563eb',
 };

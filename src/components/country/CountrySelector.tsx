@@ -13,16 +13,18 @@ export function CountrySelector() {
 
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e: MouseEvent) => {
+    // `pointerdown`, not `mousedown`: a finger never produces a mousedown, so
+    // on a phone this panel could not be dismissed by tapping away from it.
+    const handleClick = (e: Event) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
-    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('pointerdown', handleClick);
     window.addEventListener('keydown', handleKey);
     return () => {
-      window.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('pointerdown', handleClick);
       window.removeEventListener('keydown', handleKey);
     };
   }, [open]);
@@ -31,13 +33,14 @@ export function CountrySelector() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`cursor-pointer rounded-md px-2 py-1 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+        aria-expanded={open}
+        className={`flex min-h-11 cursor-pointer items-center rounded-md px-2.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
           open
             ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
             : 'text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800'
         }`}
-        title="Toggle countries"
-        aria-label="Toggle countries"
+        title={hiddenCount > 0 ? `${hiddenCount} country(ies) hidden` : 'Show or hide countries'}
+        aria-label={hiddenCount > 0 ? `Countries, ${hiddenCount} hidden` : 'Show or hide countries'}
       >
         <span className="flex items-center gap-1">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,7 +63,7 @@ export function CountrySelector() {
                   aria-pressed={visible}
                   aria-label={`${visible ? 'Hide' : 'Show'} ${countries[code].name}`}
                   title={`${visible ? 'Hide' : 'Show'} ${countries[code].name}`}
-                  className={`cursor-pointer rounded px-2 py-1 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`flex h-11 min-w-11 cursor-pointer items-center justify-center rounded px-2 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     visible
                       ? 'bg-blue-600 text-white hover:bg-blue-700'
                       : 'bg-gray-200 text-gray-400 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-500 dark:hover:bg-gray-600'

@@ -54,3 +54,7 @@ scripts/bin/
 
 # intermediate tile files
 *.mbtiles
+
+# python bytecode from the bundled skills
+__pycache__/
+*.pyc

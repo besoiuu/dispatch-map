@@ -1,6 +1,30 @@
 import type { RouteGeometry, RouteLeg } from '@/types/route';
 
-const OSRM_BASE = 'https://router.project-osrm.org';
+const OSRM_BASE = process.env.NEXT_PUBLIC_OSRM_BASE || 'https://router.project-osrm.org';
+
+/**
+ * The default is OSRM's public demo server: no key, no uptime promise, and
+ * rate-limited. A request to it can hang, and nothing used to bound that, so
+ * a route could sit on "Calculating..." for as long as the socket stayed
+ * open. Set NEXT_PUBLIC_OSRM_BASE to point at an instance of your own.
+ */
+const TIMEOUT_MS = 12_000;
+
+async function osrmFetch(url: string): Promise<unknown | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    // Abort, offline, CORS, malformed body - the caller only needs to know
+    // there is no answer, and it says so in the panel.
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export async function calculateRoute(
   coordinates: [number, number][]
@@ -10,11 +34,10 @@ export async function calculateRoute(
   const coordStr = coordinates.map(([lng, lat]) => `${lng},${lat}`).join(';');
   const url = `${OSRM_BASE}/route/v1/driving/${coordStr}?overview=full&geometries=geojson&steps=false`;
 
-  const res = await fetch(url);
-  if (!res.ok) return null;
-
-  const data = await res.json();
-  if (data.code !== 'Ok' || !data.routes?.[0]) return null;
+  const data = (await osrmFetch(url)) as
+    | { code?: string; routes?: { geometry: { coordinates: [number, number][] }; distance: number; duration: number; legs?: { distance: number; duration: number }[] }[] }
+    | null;
+  if (!data || data.code !== 'Ok' || !data.routes?.[0]) return null;
 
   const route = data.routes[0];
   const legs: RouteLeg[] = (route.legs ?? []).map((leg: { distance: number; duration: number }) => ({
@@ -38,11 +61,10 @@ export async function calculateTrip(
   const coordStr = coordinates.map(([lng, lat]) => `${lng},${lat}`).join(';');
   const url = `${OSRM_BASE}/trip/v1/driving/${coordStr}?overview=full&geometries=geojson&roundtrip=false&source=first&destination=last`;
 
-  const res = await fetch(url);
-  if (!res.ok) return null;
-
-  const data = await res.json();
-  if (data.code !== 'Ok' || !data.trips?.[0]) return null;
+  const data = (await osrmFetch(url)) as
+    | { code?: string; trips?: { geometry: { coordinates: [number, number][] }; distance: number; duration: number; legs?: { distance: number; duration: number }[] }[]; waypoints?: { waypoint_index: number }[] }
+    | null;
+  if (!data || data.code !== 'Ok' || !data.trips?.[0]) return null;
 
   const trip = data.trips[0];
   const legs: RouteLeg[] = (trip.legs ?? []).map((leg: { distance: number; duration: number }) => ({

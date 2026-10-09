@@ -2,11 +2,27 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Route, RouteGeometry, RouteStop } from '@/types/route';
 import { getNextRouteColor } from '@/lib/colors';
+import { lookupPrefixed } from '@/lib/plzIndex';
 
 interface UndoEntry {
   routeId: string;
   plz: string;
 }
+
+export interface AddPlzOptions {
+  /** Where the area is. Supplying it creates the stop in the same tick. */
+  coordinate?: [number, number];
+  label?: string;
+}
+
+/**
+ * Why `addPlzToActiveRoute` reports back: it used to return silently when
+ * the code was already assigned, which was indistinguishable from success.
+ * Paired with a code that reached `plzCodes` but never became a stop, that
+ * produced the worst bug in the app - a selection that vanished and could
+ * never be made again, with nothing on screen either time.
+ */
+export type AddPlzResult = 'added' | 'duplicate' | 'no-route' | 'unknown-code';
 
 interface RouteState {
   routes: Route[];
@@ -18,7 +34,7 @@ interface RouteState {
   renameRoute: (id: string, name: string) => void;
   setActiveRoute: (id: string | null) => void;
   toggleRouteVisibility: (id: string) => void;
-  addPlzToActiveRoute: (plz: string) => void;
+  addPlzToActiveRoute: (plz: string, opts?: AddPlzOptions) => AddPlzResult;
   removePlzFromRoute: (routeId: string, plz: string) => void;
   setRouteColor: (id: string, color: string) => void;
   clearRoute: (id: string) => void;
@@ -29,6 +45,8 @@ interface RouteState {
   setStops: (id: string, stops: RouteStop[]) => void;
   reorderStop: (routeId: string, fromIndex: number, toIndex: number) => void;
   removeStop: (routeId: string, stopId: string) => void;
+  restoreStop: (routeId: string, stop: RouteStop, index: number) => void;
+  moveStop: (routeId: string, stopId: string, coordinate: [number, number]) => void;
   addWaypoint: (routeId: string, coordinate: [number, number], index?: number, label?: string) => void;
   restoreRoute: (route: Route, index: number) => void;
   restoreRouteStops: (id: string, plzCodes: string[], stops: RouteStop[], geometry?: RouteGeometry) => void;
@@ -77,12 +95,36 @@ export const useRouteStore = create<RouteState>()(
           ),
         })),
 
-      addPlzToActiveRoute: (plz) => {
+      addPlzToActiveRoute: (plz, opts) => {
         const { activeRouteId, routes } = get();
-        if (!activeRouteId) return;
+        if (!activeRouteId) return 'no-route';
 
-        const alreadyAssigned = routes.some((r) => r.plzCodes.includes(plz));
-        if (alreadyAssigned) return;
+        if (routes.some((r) => r.plzCodes.includes(plz))) return 'duplicate';
+
+        // Resolve the position now, from the caller or from the index, so the
+        // stop exists immediately. Falling back to the detail GeoJSON (in
+        // RoutePanel) is still allowed - it is more precise, being a real
+        // polygon centroid - but it is no longer required for the code to
+        // show up at all.
+        let coordinate = opts?.coordinate;
+        let label = opts?.label;
+        if (!coordinate) {
+          const entry = lookupPrefixed(plz);
+          if (entry) {
+            coordinate = [entry.lng, entry.lat];
+            if (!label) label = entry.name ? `${entry.plz} ${entry.name}` : entry.plz;
+          }
+        }
+
+        const stop: RouteStop | null = coordinate
+          ? {
+              id: crypto.randomUUID(),
+              type: 'plz',
+              plz,
+              label: label ?? plz.split(':').pop() ?? plz,
+              coordinate,
+            }
+          : null;
 
         set((s) => ({
           routes: s.routes.map((r) =>
@@ -90,12 +132,17 @@ export const useRouteStore = create<RouteState>()(
               ? {
                   ...r,
                   plzCodes: [...r.plzCodes, plz],
+                  stops: stop ? [...r.stops, stop] : r.stops,
                   geometry: undefined,
                 }
               : r
           ),
           undoStack: [...s.undoStack, { routeId: activeRouteId, plz }],
         }));
+
+        // Added either way; the caller is told the position is still missing
+        // so it can say so instead of showing an empty route.
+        return stop ? 'added' : 'unknown-code';
       },
 
       removePlzFromRoute: (routeId, plz) =>
@@ -195,6 +242,37 @@ export const useRouteStore = create<RouteState>()(
               plzCodes: stop?.plz
                 ? r.plzCodes.filter((p) => p !== stop.plz)
                 : r.plzCodes,
+              geometry: undefined,
+            };
+          }),
+        })),
+
+      restoreStop: (routeId, stop, index) =>
+        set((s) => ({
+          routes: s.routes.map((r) => {
+            if (r.id !== routeId) return r;
+            const stops = [...r.stops];
+            stops.splice(Math.min(index, stops.length), 0, stop);
+            const plzCodes = stops.filter((st) => st.plz).map((st) => st.plz!);
+            return { ...r, stops, plzCodes, geometry: undefined };
+          }),
+        })),
+
+      /**
+       * Drag a pin to a new position. There was no action for this at all,
+       * which is why no marker on the map could be moved on any device - the
+       * feature was missing from the store, not broken in the UI.
+       */
+      moveStop: (routeId, stopId, coordinate) =>
+        set((s) => ({
+          routes: s.routes.map((r) => {
+            if (r.id !== routeId) return r;
+            if (!r.stops.some((st) => st.id === stopId)) return r;
+            return {
+              ...r,
+              stops: r.stops.map((st) =>
+                st.id === stopId ? { ...st, coordinate } : st
+              ),
               geometry: undefined,
             };
           }),

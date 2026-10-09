@@ -1,8 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useEffect } from 'react';
-import type { FeatureCollection } from 'geojson';
-import type { CountryCode } from '@/types/country';
+import { useRef, useState, useEffect } from 'react';
 import { SearchBar } from './SearchBar';
 import { RouteManager } from './RouteManager';
 import { Legend } from './Legend';
@@ -13,8 +11,6 @@ const HelpPanel = dynamic(() => import('../ui/HelpPanel').then((m) => m.HelpPane
 import { InstallPrompt } from '../ui/InstallPrompt';
 import { useMapStore } from '@/store/mapStore';
 import { useThemeStore } from '@/store/themeStore';
-import { useRouteStore } from '@/store/routeStore';
-import { countries, enabledCountries } from '@/config/countries';
 
 function SidebarSkeleton() {
   return (
@@ -42,20 +38,24 @@ function SettingsDropdown() {
 
   useEffect(() => {
     if (!open) return;
-    const handleClick = (e: MouseEvent) => {
+    // `pointerdown`: a finger produces no mousedown, so this menu could not
+    // be dismissed by tapping away from it on a phone.
+    const handleClick = (e: Event) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('pointerdown', handleClick);
     window.addEventListener('keydown', handleKey);
-    return () => { window.removeEventListener('mousedown', handleClick); window.removeEventListener('keydown', handleKey); };
+    return () => { window.removeEventListener('pointerdown', handleClick); window.removeEventListener('keydown', handleKey); };
   }, [open]);
 
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`cursor-pointer rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={`flex h-11 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
           open ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300'
         }`}
         title="Settings"
@@ -70,7 +70,7 @@ function SettingsDropdown() {
         <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-gray-200 bg-white py-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-900 animate-in">
           <button
             onClick={toggle}
-            className="cursor-pointer flex w-full items-center gap-3 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            className="flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 text-xs text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             {dark ? (
               <svg className="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
@@ -81,7 +81,8 @@ function SettingsDropdown() {
           </button>
           <button
             onClick={toggleColorBlind}
-            className="cursor-pointer flex w-full items-center gap-3 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            aria-pressed={colorBlind}
+            className="flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 text-xs text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
           >
             <svg className={`h-4 w-4 ${colorBlind ? 'text-blue-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
@@ -99,36 +100,19 @@ function SettingsDropdown() {
   );
 }
 
-interface SidebarProps {
-  detailDataMap: Partial<Record<CountryCode, FeatureCollection>>;
-}
-
-export function Sidebar({ detailDataMap }: SidebarProps) {
-  const zoom = useMapStore((s) => s.zoom);
-  const activeCountry = useMapStore((s) => s.activeCountry);
-  const config = countries[activeCountry];
-
+/**
+ * The sidebar no longer touches the detail GeoJSON.
+ *
+ * It used to merge every visible country's features into one collection and
+ * clone each feature to tag `_country` - 44,331 features, 55 MB of source
+ * data, duplicated in memory - purely so that search could match on them and
+ * the stop builder could average a polygon into a centroid. Both now read
+ * `lib/plzIndex` (1.9 MB, every code in every country, loaded up front), so
+ * the clone, the cache-ref read during render, and the per-keystroke scan of
+ * the whole collection are all gone.
+ */
+export function Sidebar() {
   const loading = useMapStore((s) => s.loading);
-  const hiddenCountries = useMapStore((s) => s.hiddenCountries);
-  const augmentedCache = useRef(new Map<string, GeoJSON.Feature[]>());
-  const detailData = useMemo(() => {
-    const cache = augmentedCache.current;
-    const visibleCountries = enabledCountries.filter((c) => !hiddenCountries.has(c));
-    const allFeatures: GeoJSON.Feature[] = [];
-    for (const c of visibleCountries) {
-      const src = detailDataMap[c]?.features;
-      if (!src) continue;
-      const cacheKey = `${c}:${src.length}`;
-      let augmented = cache.get(cacheKey);
-      if (!augmented) {
-        augmented = src.map(f => ({ ...f, properties: { ...f.properties, _country: c } }));
-        cache.set(cacheKey, augmented);
-      }
-      allFeatures.push(...augmented);
-    }
-    if (allFeatures.length === 0) return null;
-    return { type: 'FeatureCollection' as const, features: allFeatures };
-  }, [detailDataMap, hiddenCountries]);
 
   return (
     <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full flex-col bg-white dark:bg-gray-900 border-l-0 md:border-l border-gray-200/80 dark:border-gray-800">
@@ -152,7 +136,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
 
       {/* Search */}
       <div className="px-4 pb-3">
-        <SearchBar detailData={detailData} />
+        <SearchBar />
       </div>
 
       {/* Content */}
@@ -163,7 +147,7 @@ export function Sidebar({ detailDataMap }: SidebarProps) {
       ) : (
         <>
           <div className="shrink-0">
-            <RouteManager detailData={detailData} />
+            <RouteManager />
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             <Legend />

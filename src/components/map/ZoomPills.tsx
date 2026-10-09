@@ -36,7 +36,9 @@ export function ZoomPills() {
           <button
             key={level.label}
             onClick={() => handleClick(level.zoom)}
-            className={`relative cursor-pointer rounded-[10px] px-3.5 py-1.5 text-[11px] font-semibold tracking-wide transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            aria-current={i === active ? 'true' : undefined}
+            aria-label={`Zoom to ${level.label} level`}
+            className={`relative min-h-11 cursor-pointer rounded-[10px] px-3.5 text-[11px] font-semibold tracking-wide transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               i === active
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
