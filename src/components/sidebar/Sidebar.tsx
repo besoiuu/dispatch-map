@@ -117,7 +117,7 @@ export function Sidebar() {
   return (
     <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full flex-col bg-white dark:bg-gray-900 border-l-0 md:border-l border-gray-200/80 dark:border-gray-800">
       {/* Header */}
-      <div className="px-4 py-3">
+      <div className="shrink-0 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -135,7 +135,7 @@ export function Sidebar() {
       </div>
 
       {/* Search */}
-      <div className="px-4 pb-3">
+      <div className="shrink-0 px-4 pb-3">
         <SearchBar />
       </div>
 
@@ -145,14 +145,25 @@ export function Sidebar() {
           <SidebarSkeleton />
         </div>
       ) : (
-        <>
-          <div className="shrink-0">
-            <RouteManager />
-          </div>
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <Legend />
-          </div>
-        </>
+        /* Routes and the legend scroll TOGETHER, in one box.
+         *
+         * RouteManager used to be `shrink-0` with only the legend scrolling
+         * below it. A shrink-0 box refuses to give up height, so once a few
+         * routes were open the column grew past the sidebar and the overflow
+         * simply spilled off the bottom of the screen - with no scrollable
+         * ancestor, there was nothing to scroll. Measured on a 1366x768
+         * laptop with four routes: content ended 331px below the fold, and
+         * the only scrollable things on the whole sidebar were the per-route
+         * stop lists, none of which was overflowing.
+         *
+         * `min-h-0` is the half that is easy to drop: a flex child's default
+         * `min-height:auto` refuses to shrink below its content, which is
+         * the same bug again one level down.
+         */
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <RouteManager />
+          <Legend />
+        </div>
       )}
 
       <InstallPrompt />
