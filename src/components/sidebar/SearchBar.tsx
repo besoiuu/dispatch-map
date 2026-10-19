@@ -218,7 +218,7 @@ export function SearchBar() {
         <button
           onClick={reset}
           aria-label="Clear search"
-          className="cursor-pointer absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="cursor-pointer absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           {geoLoading ? (
             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -233,7 +233,7 @@ export function SearchBar() {
         </button>
       )}
       {countryHint && !open && (
-        <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">Searching {countryHint} only</p>
+        <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Searching {countryHint} only</p>
       )}
       {open && (
         <ul
@@ -259,12 +259,12 @@ export function SearchBar() {
               >
                 {r.type === 'plz' ? (
                   <>
-                    <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[10px] font-bold uppercase text-gray-400 dark:bg-gray-700 dark:text-gray-400">
+                    <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 dark:bg-gray-700 dark:text-gray-400">
                       {r.country}
                     </span>
                     <span className="font-medium tabular-nums dark:text-gray-200">{r.plz}</span>
                     {r.name && <span className="truncate text-gray-500 dark:text-gray-400">{r.name}</span>}
-                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-gray-300 dark:text-gray-600">
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Area
                     </span>
                   </>
@@ -277,10 +277,10 @@ export function SearchBar() {
                     <span className="min-w-0">
                       <span className="block truncate font-medium dark:text-gray-200">{r.name}</span>
                       {r.context && (
-                        <span className="block truncate text-xs text-gray-400 dark:text-gray-500">{r.context}</span>
+                        <span className="block truncate text-xs text-gray-500 dark:text-gray-400">{r.context}</span>
                       )}
                     </span>
-                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-gray-300 dark:text-gray-600">
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                       Waypoint
                     </span>
                   </>

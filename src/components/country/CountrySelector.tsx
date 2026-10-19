@@ -37,7 +37,7 @@ export function CountrySelector() {
         className={`flex min-h-11 cursor-pointer items-center rounded-md px-2.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
           open
             ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-            : 'text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800'
+            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
         }`}
         title={hiddenCount > 0 ? `${hiddenCount} country(ies) hidden` : 'Show or hide countries'}
         aria-label={hiddenCount > 0 ? `Countries, ${hiddenCount} hidden` : 'Show or hide countries'}
@@ -66,7 +66,7 @@ export function CountrySelector() {
                   className={`flex h-11 min-w-11 cursor-pointer items-center justify-center rounded px-2 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     visible
                       ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-200 text-gray-400 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-500 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
                   }`}
                 >
                   {code.toUpperCase()}

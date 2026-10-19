@@ -65,7 +65,7 @@ export function InstallPrompt() {
         </button>
         <button
           onClick={handleDismiss}
-          className="flex h-11 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-blue-400 transition-colors hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-blue-400 transition-colors hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           aria-label="Dismiss install prompt"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

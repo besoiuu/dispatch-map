@@ -313,7 +313,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
           onClick={onActivate}
           aria-label={`Make ${route.name} the active route`}
           aria-pressed={isActive}
-          className="cursor-pointer flex h-11 w-9 shrink-0 items-center justify-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <span
             className="h-4 w-4 rounded-full border-2 border-gray-300 transition-transform"
@@ -348,7 +348,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                 setEditing(true);
               }}
               aria-label={`Rename ${route.name}`}
-              className="cursor-pointer flex h-11 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:text-gray-300"
+              className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:text-gray-300"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -367,7 +367,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
         )}
         <button
           onClick={() => toggleRouteVisibility(route.id)}
-          className="cursor-pointer flex h-11 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:text-gray-300"
+          className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:text-gray-300"
           aria-label={route.visible ? `Hide ${route.name}` : `Show ${route.name}`}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -392,7 +392,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
               onClick: () => restoreRoute(snapshot, idx),
             });
           }}
-          className="cursor-pointer flex h-11 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="cursor-pointer flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 transition-colors hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           aria-label={`Delete ${route.name}`}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -412,7 +412,12 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
       {/* Stop list */}
       {stops.length > 0 && (
         <div className="border-t border-gray-200 dark:border-gray-700">
-          <div ref={listRef} className="max-h-64 overflow-y-auto overscroll-contain">
+          {/* No cap and no scrollbar of its own. This used to be
+                `max-h-64 overflow-y-auto`, from when the sidebar itself could
+                not scroll - which put a 256px window inside the 531px one and
+                left a wheel stuck at the inner edge. The sidebar scrolls now,
+                so the list is simply as long as it is. */}
+          <div ref={listRef}>
             {stops.map((stop, i) => (
               <div key={stop.id}>
                 {dragIdx !== null && dropIdx === i && dropIdx < dragIdx && (
@@ -429,7 +434,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                   <button
                     onPointerDown={(e) => handleDragStart(i, e)}
                     aria-label={`Reorder ${stop.label}`}
-                    className="flex h-11 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded text-gray-300 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-600"
+                    className="flex h-11 w-11 shrink-0 cursor-grab touch-none items-center justify-center rounded text-gray-300 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-600"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <circle cx="9" cy="6" r="1.6" />
@@ -477,31 +482,37 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                           : stop.label || parsePlz(stop.plz ?? '').code}
                       </span>
                       {stop.type === 'waypoint' ? (
-                        <span className="shrink-0 rounded bg-gray-100 px-1 text-[9px] text-gray-400 dark:bg-gray-800">
+                        <span className="shrink-0 rounded bg-gray-100 px-1 text-[9px] text-gray-500 dark:text-gray-400 dark:bg-gray-800">
                           WP
                         </span>
                       ) : (
                         stop.plz && (
-                          <span className="shrink-0 rounded bg-gray-100 px-1 text-[10px] uppercase text-gray-400 dark:bg-gray-800">
+                          <span className="shrink-0 rounded bg-gray-100 px-1 text-[10px] uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                             {parsePlz(stop.plz).country}
                           </span>
                         )
                       )}
                     </span>
                     {stop.type === 'waypoint' && (
-                      <span className="text-[10px] tabular-nums text-gray-400 dark:text-gray-500">
+                      <span className="text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
                         {stop.coordinate[1].toFixed(5)}, {stop.coordinate[0].toFixed(5)}
                       </span>
                     )}
+                    {/* The leg to the NEXT stop, on its own line.
+                        It used to sit beside the name as a shrink-0,
+                        whitespace-nowrap sibling, so it never gave up a pixel
+                        and the name - which is the only thing identifying the
+                        row - absorbed the whole shortfall. With eight stops in
+                        a 300px column that left "40…", "80…", "22…": a
+                        postcode truncated to two digits. */}
+                    {route.geometry?.legs?.[i] && i < stops.length - 1 && (
+                      <span className="text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
+                        {formatDistance(route.geometry.legs[i].distance)}
+                        <span className="mx-0.5">·</span>
+                        {formatDuration(route.geometry.legs[i].duration)}
+                      </span>
+                    )}
                   </button>
-
-                  {route.geometry?.legs?.[i] && i < stops.length - 1 && (
-                    <span className="shrink-0 whitespace-nowrap text-[10px] tabular-nums text-gray-400 dark:text-gray-500">
-                      {formatDistance(route.geometry.legs[i].distance)}
-                      <span className="mx-0.5">·</span>
-                      {formatDuration(route.geometry.legs[i].duration)}
-                    </span>
-                  )}
 
                   {/* Always rendered. This was `opacity-0 group-hover:opacity-100`,
                       which on a phone means permanently invisible - there is no
@@ -509,7 +520,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                   <button
                     onClick={() => handleRemoveStop(stop, i)}
                     aria-label={`Remove ${stop.label}`}
-                    className="flex h-11 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 transition-colors hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -533,21 +544,21 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                 <span className="text-sm font-bold tabular-nums" style={{ color: route.color }}>
                   {formatDistance(route.geometry.distance)}
                 </span>
-                <span className="text-xs text-gray-400">·</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">·</span>
                 <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
                   {formatDuration(route.geometry.duration)}
                 </span>
               </div>
             ) : stops.length >= 2 ? (
-              <p className="mb-1.5 text-[11px] text-gray-400">Calculating route...</p>
+              <p className="mb-1.5 text-[11px] text-gray-500 dark:text-gray-400">Calculating route...</p>
             ) : (
-              <p className="mb-1.5 text-[11px] text-gray-400">Add more stops</p>
+              <p className="mb-1.5 text-[11px] text-gray-500 dark:text-gray-400">Add more stops</p>
             )}
             <div className="flex flex-wrap items-center gap-0.5">
               <button
                 onClick={doCalculate}
                 disabled={stops.length < 2}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                 aria-label="Recalculate route"
                 title="Recalculate"
               >
@@ -558,7 +569,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
               {stops.length >= 3 && (
                 <button
                   onClick={doOptimize}
-                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                   aria-label="Optimize stop order"
                   title="Optimize route"
                 >
@@ -572,7 +583,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                   href={buildGoogleMapsUrl(stops.map((s) => ({ coordinate: s.coordinate, label: s.label })))}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                   aria-label="Open route in Google Maps"
                   title="Open in Google Maps"
                 >
@@ -591,7 +602,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                   );
                   addToast('Share link copied');
                 }}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                 aria-label="Copy share link"
                 title="Copy share link"
               >
@@ -601,7 +612,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
               </button>
               <button
                 onClick={handleCopy}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                 aria-label="Copy route as text"
                 title="Copy as text"
               >
@@ -611,7 +622,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
               </button>
               <button
                 onClick={handleExportCSV}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                 aria-label="Export route as CSV"
                 title="Export CSV"
               >
@@ -621,7 +632,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
               </button>
               <button
                 onClick={() => printRoute(route, stops)}
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                 aria-label="Print route"
                 title="Print / PDF"
               >

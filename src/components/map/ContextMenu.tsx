@@ -147,7 +147,7 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
           <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
             <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
               {state.country && (
-                <span className="mr-1 text-[10px] uppercase text-gray-400">{state.country}</span>
+                <span className="mr-1 text-[10px] uppercase text-gray-500 dark:text-gray-400">{state.country}</span>
               )}
               {state.plz}
             </p>
@@ -166,7 +166,7 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
             </svg>
             Remove this stop
           </button>
-          <p className="px-3 pb-1 pt-0.5 text-[10px] italic text-gray-400 dark:text-gray-500">
+          <p className="px-3 pb-1 pt-0.5 text-[10px] italic text-gray-500 dark:text-gray-400">
             Drag the pin to move it.
           </p>
           <div className="my-0.5 border-t border-gray-100 dark:border-gray-800" />
@@ -182,7 +182,7 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
 
       {!state.stop && activeRoute && (
         <button onClick={handleAddWaypoint} className={`cursor-pointer ${item}`} role="menuitem">
-          <svg className="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -191,7 +191,7 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
       )}
 
       {!state.stop && !activeRoute && (
-        <p className="px-3 py-2 text-[11px] italic text-gray-400 dark:text-gray-500">Create a route first</p>
+        <p className="px-3 py-2 text-[11px] italic text-gray-500 dark:text-gray-400">Create a route first</p>
       )}
 
       <div className="mt-0.5 border-t border-gray-100 pt-0.5 dark:border-gray-800">
@@ -203,13 +203,13 @@ export function ContextMenu({ state, onClose }: ContextMenuProps) {
           className={`cursor-pointer ${item}`}
           role="menuitem"
         >
-          <svg className="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
           Open in Google Maps
         </a>
         <button onClick={handleCopyCoords} className={`cursor-pointer ${item}`} role="menuitem">
-          <svg className="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
           Copy coordinates

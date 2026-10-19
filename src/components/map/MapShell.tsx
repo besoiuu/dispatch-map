@@ -186,7 +186,7 @@ export function MapShell() {
       {/* Desktop collapse toggle */}
       <button
         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-        className="cursor-pointer hidden md:flex fixed top-1/2 -translate-y-1/2 z-40 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors shadow-sm"
+        className="cursor-pointer hidden md:flex fixed top-1/2 -translate-y-1/2 z-40 h-10 w-5 items-center justify-center rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors shadow-sm"
         style={{ right: sidebarCollapsed ? 0 : 'var(--sidebar-width)' }}
         title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
         aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}

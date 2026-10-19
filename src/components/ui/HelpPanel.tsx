@@ -74,7 +74,7 @@ export function HelpPanel() {
       <button
         ref={openerRef}
         onClick={() => setOpen(true)}
-        className="flex h-11 w-9 cursor-pointer items-center justify-center rounded-md text-sm font-medium text-gray-400 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-500 dark:hover:bg-gray-800"
+        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-400 dark:hover:bg-gray-800"
         title="Keyboard shortcuts & tips"
         aria-label="Show help"
         aria-haspopup="dialog"
@@ -103,7 +103,7 @@ export function HelpPanel() {
                 </h2>
                 <button
                   onClick={() => setOpen(false)}
-                  className="flex h-11 w-9 cursor-pointer items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-gray-800"
+                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-gray-800"
                   aria-label="Close help"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -123,7 +123,7 @@ export function HelpPanel() {
                         <div className="flex shrink-0 items-center gap-1 pt-0.5">
                           {s.keys.map((key, j) => (
                             <span key={key}>
-                              {j > 0 && <span className="mx-0.5 text-[10px] text-gray-400">/</span>}
+                              {j > 0 && <span className="mx-0.5 text-[10px] text-gray-500 dark:text-gray-400">/</span>}
                               <kbd className="inline-block rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                                 {key}
                               </kbd>
@@ -152,7 +152,7 @@ export function HelpPanel() {
               </div>
 
               <div className="border-t border-gray-200 px-5 py-2.5 dark:border-gray-700">
-                <p className="text-center text-[10px] text-gray-400 dark:text-gray-600">
+                <p className="text-center text-[10px] text-gray-500 dark:text-gray-400">
                   Press{' '}
                   <kbd className="rounded border border-gray-200 bg-gray-100 px-1 py-0.5 font-mono text-[10px] dark:border-gray-700 dark:bg-gray-800">
                     Esc

@@ -91,6 +91,25 @@ detail GeoJSON is not fetched at all — nothing reads it. The overview files
 (7 MB) are still loaded, because `Legend` counts and lists regions from them
 in both modes.
 
+## Every distance on screen comes from a public demo server
+
+`src/lib/routing.ts` calls OSRM at
+`process.env.NEXT_PUBLIC_OSRM_BASE || 'https://router.project-osrm.org'`.
+That default is the project's **public demo instance**. It has no uptime
+guarantee and its usage policy asks people not to build on it, so every
+kilometre and every ETA this app shows - and the ones the loadboard quotes a
+carrier from - depend on something nobody here operates.
+
+It fails honestly today: `calculateRoute` returns null on a timeout or a
+non-answer and the panel raises "Routing service did not answer - distances
+unavailable" rather than drawing a route with no numbers. That is the right
+behaviour and should stay.
+
+What is missing is somewhere else to point. Set `NEXT_PUBLIC_OSRM_BASE` to a
+self-hosted OSRM (or a paid routing API with an OSRM-compatible response) and
+nothing else has to change. Worth doing before a dispatcher plans a day
+around these figures.
+
 ## The `#route=` link is a contract with another repo
 
 The loadboard (`remro-live-loads`) turns a selection of loads into a link

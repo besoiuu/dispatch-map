@@ -55,8 +55,8 @@ function SettingsDropdown() {
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`flex h-11 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-          open ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300'
+        className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+          open ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-300'
         }`}
         title="Settings"
         aria-label="Settings"
@@ -84,14 +84,14 @@ function SettingsDropdown() {
             aria-pressed={colorBlind}
             className="flex min-h-11 w-full cursor-pointer items-center gap-3 px-3 text-xs text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <svg className={`h-4 w-4 ${colorBlind ? 'text-blue-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={`h-4 w-4 ${colorBlind ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
             </svg>
             <span>Soft colors {colorBlind ? 'on' : 'off'}</span>
           </button>
           <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
           <div className="px-3 py-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Countries</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">Countries</p>
             <CountrySelector />
           </div>
         </div>

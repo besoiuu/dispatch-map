@@ -57,13 +57,13 @@ const CountrySection = memo(function CountrySection({
         {/* The country code, not a flag emoji: emoji are drawn by the operating
             system, so the same list looked different on every machine and
             arrived with its own colours over the palette. */}
-        <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+        <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
           {code}
         </span>
         <span className="text-gray-800 dark:text-gray-200">{config.name}</span>
-        <span className="text-xs tabular-nums text-gray-400">({regions.length})</span>
+        <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">({regions.length})</span>
         <svg
-          className={`ml-auto h-3 w-3 shrink-0 text-gray-400 transition-transform duration-200 ${
+          className={`ml-auto h-3 w-3 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
             isCollapsed ? '' : 'rotate-90'
           }`}
           fill="none"
@@ -136,7 +136,7 @@ export function Legend() {
           Regions ({total})
         </h3>
         <svg
-          className={`h-3 w-3 text-gray-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+          className={`h-3 w-3 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

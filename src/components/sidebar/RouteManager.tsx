@@ -61,14 +61,14 @@ export function RouteManager() {
   return (
     <div className="px-4 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Routes</h3>
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Routes</h3>
         {activeRouteId && (
           <button
             onClick={() => setImportOpen(!importOpen)}
-            className={`cursor-pointer rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+            className={`cursor-pointer rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               importOpen
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                : 'text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
             }`}
             title="Import postal codes"
           >
@@ -87,7 +87,7 @@ export function RouteManager() {
             rows={4}
           />
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 dark:text-gray-500">
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">
               {importText.split(/[\n,;\s]+/).filter(Boolean).length} codes detected
             </span>
             <div className="flex gap-1.5">
@@ -127,10 +127,10 @@ export function RouteManager() {
 
       {routes.length === 0 && (
         <div className="text-center py-6 px-4">
-          <svg className="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="mx-auto h-8 w-8 text-gray-500 dark:text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
           </svg>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Create a route to start selecting postal codes.
           </p>
         </div>

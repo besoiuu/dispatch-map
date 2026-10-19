@@ -44,7 +44,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
+    // suppressHydrationWarning, and only here: the `dark` class is put on
+    // <html> by an effect in MapShell once the store has read the saved
+    // preference, so the server - which has no localStorage and no OS
+    // setting - can never render it. React compared the two and warned on
+    // every load, then remounted the tree. The attribute exists for exactly
+    // this: something outside React owns this class.
+    <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://basemaps.cartocdn.com" />
         <link rel="preconnect" href="https://router.project-osrm.org" />

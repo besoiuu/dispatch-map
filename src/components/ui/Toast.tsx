@@ -56,7 +56,7 @@ export function ToastContainer() {
           )}
           <button
             onClick={() => removeToast(toast.id)}
-            className="-mr-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            className="-mr-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             aria-label="Dismiss notification"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

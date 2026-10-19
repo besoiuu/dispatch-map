@@ -57,7 +57,7 @@ export function MobileHint() {
         <span className="text-xs font-medium">Long-press the map for the menu. Drag a pin to move it.</span>
         <button
           onClick={dismiss}
-          className="ml-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-400 transition-colors hover:text-white"
+          className="ml-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-500 dark:text-gray-400 transition-colors hover:text-white"
           aria-label="Dismiss hint"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
