@@ -28,6 +28,9 @@
  * would repeat the bug in a quieter way.
  */
 
+/** What a stop is for. The economics of a run live in this distinction. */
+export type StopKind = 'pickup' | 'delivery' | 'waypoint';
+
 export type RouteHashItem =
   | { kind: 'plz'; code: string }
   /** `[lng, lat]`, the order the store and MapLibre both use. */
@@ -36,6 +39,17 @@ export type RouteHashItem =
 export interface ParsedRouteHash {
   name: string;
   items: RouteHashItem[];
+  /**
+   * One kind per item, same order, when the caller said.
+   *
+   * A lorry loads everything and then unloads, so the leg after the last
+   * pickup is the only loaded stretch and everything before the first one
+   * is deadhead. Without this the map can only draw one undifferentiated
+   * line, which hides the thing a margin actually lives in.
+   */
+  kinds?: StopKind[];
+  /** What the whole run earns, in euro, when the caller said. */
+  revenue?: number;
 }
 
 const num = (s: string) => {
@@ -52,7 +66,10 @@ const isLng = (n: number) => Number.isFinite(n) && n >= -180 && n <= 180;
  * Parse the value of the `route` parameter. Returns null when there is no
  * name, or nothing to put on the map.
  */
-export function parseRouteHash(param: string | null | undefined): ParsedRouteHash | null {
+export function parseRouteHash(
+  param: string | null | undefined,
+  extras: { kinds?: StopKind[]; revenue?: number } = {}
+): ParsedRouteHash | null {
   if (!param) return null;
 
   // The FIRST colon ends the name; the codes carry colons of their own.
@@ -98,7 +115,8 @@ export function parseRouteHash(param: string | null | undefined): ParsedRouteHas
     // A coordinate we cannot read is dropped, never passed on as a postcode.
   }
 
-  return items.length ? { name, items } : null;
+  if (!items.length) return null;
+  return { name, items, ...extras };
 }
 
 /**
@@ -110,4 +128,44 @@ export function buildRouteHash(name: string, items: RouteHashItem[]): string {
     it.kind === 'plz' ? it.code : `@${it.lngLat[1]};${it.lngLat[0]}`
   );
   return `route=${encodeURIComponent(name)}:${parts.join(',')}`;
+}
+
+
+const KIND_BY_LETTER: Record<string, StopKind> = {
+  p: 'pickup',
+  d: 'delivery',
+  w: 'waypoint',
+};
+
+/**
+ * `kinds=pdd` -> one kind per stop.
+ *
+ * Returns null unless it is well formed AND as long as the route, because a
+ * kinds string that is out of step with the stops is worse than none: it
+ * would draw the empty legs in the wrong places, which is a confident lie
+ * rather than a missing feature.
+ */
+export function parseKinds(raw: string | null | undefined, stopCount: number): StopKind[] | null {
+  if (!raw) return null;
+  const letters = raw.trim().toLowerCase().split('');
+  if (letters.length !== stopCount) return null;
+  const kinds: StopKind[] = [];
+  for (const ch of letters) {
+    const k = KIND_BY_LETTER[ch];
+    if (!k) return null;
+    kinds.push(k);
+  }
+  return kinds;
+}
+
+/** `eur=1250.50` -> 1250.5. Anything not a positive finite number is dropped. */
+export function parseRevenue(raw: string | null | undefined): number | undefined {
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** The letters `parseKinds` reads, for whoever builds a link. */
+export function kindLetters(kinds: StopKind[]): string {
+  return kinds.map((k) => (k === 'pickup' ? 'p' : k === 'delivery' ? 'd' : 'w')).join('');
 }

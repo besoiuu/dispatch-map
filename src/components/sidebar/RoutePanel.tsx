@@ -9,6 +9,8 @@ import { lookupPrefixed } from '@/lib/plzIndex';
 import { textOn } from '@/lib/colors';
 import { routeToCSV, downloadCSV, copyRouteAsText, printRoute } from '@/lib/export';
 import { calculateRoute, calculateTrip, formatDistance, formatDuration, buildGoogleMapsUrl } from '@/lib/routing';
+import { splitLegs, runValue } from '@/lib/legEconomics';
+import { planDriving } from '@/lib/driverHours';
 
 function parsePlz(prefixedPlz: string): { country: string; code: string } {
   if (prefixedPlz.includes(':')) {
@@ -34,7 +36,11 @@ interface RoutePanelProps {
  * longer silently fails to appear while 55 MB of polygons is still being
  * fetched - or never fetched, since that only happened past zoom 7.
  */
-function buildStopsFromPlz(plzCodes: string[], existingStops: RouteStop[]): RouteStop[] {
+function buildStopsFromPlz(
+  plzCodes: string[],
+  existingStops: RouteStop[],
+  codeKinds?: Record<string, RouteStop['kind']>
+): RouteStop[] {
   const existingPlz = new Set(existingStops.filter((s) => s.plz).map((s) => s.plz!));
   if (plzCodes.every((plz) => existingPlz.has(plz))) return existingStops;
 
@@ -56,14 +62,24 @@ function buildStopsFromPlz(plzCodes: string[], existingStops: RouteStop[]): Rout
       plz,
       label: entry.name ? `${code} ${entry.name}` : code,
       coordinate: [entry.lng, entry.lat],
+      // The kind is keyed by CODE, not by position: this pass runs when the
+      // index lands, long after the link was read, and the stop built here
+      // would otherwise lose what the stop is for. Keyed by code it also
+      // survives dragging and optimise.
+      ...(codeKinds?.[plz] ? { kind: codeKinds[plz] } : {}),
     });
   }
 
-  // Waypoints carry no postal code, so they are not in `plzCodes` and have to
-  // be carried over explicitly or a repair pass would drop them.
-  for (const stop of existingStops) {
-    if (stop.type === 'waypoint') stops.push(stop);
-  }
+  // Waypoints carry no postal code, so they are not in `plzCodes`. They are
+  // put back AT THEIR ORIGINAL INDEX rather than appended: a waypoint is
+  // very often the approach - where the lorry is starting from - and
+  // pushing it to the end turns the first leg of the tour into the last,
+  // which reverses the route and makes the empty-leg split describe the
+  // wrong stretch.
+  existingStops.forEach((stop, i) => {
+    if (stop.type !== 'waypoint') return;
+    stops.splice(Math.min(i, stops.length), 0, stop);
+  });
 
   return stops;
 }
@@ -105,7 +121,7 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
   };
 
   const stops = useMemo(
-    () => buildStopsFromPlz(route.plzCodes, route.stops),
+    () => buildStopsFromPlz(route.plzCodes, route.stops, route.codeKinds),
     // `indexReady` is a cache key, not an input: before the index lands an
     // unresolvable code produces no stop, so the pass has to run again once
     // it can succeed. The linter cannot see that `buildStopsFromPlz` reads
@@ -540,14 +556,81 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
             {route.calculating ? (
               <span className="animate-pulse text-xs text-gray-500">Calculating...</span>
             ) : route.geometry ? (
-              <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="text-sm font-bold tabular-nums" style={{ color: route.color }}>
-                  {formatDistance(route.geometry.distance)}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">·</span>
-                <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
-                  {formatDuration(route.geometry.duration)}
-                </span>
+              <div className="mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold tabular-nums" style={{ color: route.color }}>
+                    {formatDistance(route.geometry.distance)}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">·</span>
+                  <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                    {formatDuration(route.geometry.duration)}
+                  </span>
+                </div>
+                {(() => {
+                  const plan = planDriving(route.geometry!.duration);
+                  const split = splitLegs(route.geometry!.legs, stops);
+                  const value = runValue(route.revenue, split);
+                  return (
+                    <>
+                      {/* "43h 36m" reads like a number and is not one: nobody
+                          drives 43 hours. Under EU 561/2006 that is five days,
+                          and five days is what you can tell a carrier. Said as
+                          a floor, because loading, ferries and weekly rest are
+                          not modelled. */}
+                      {plan.overnight && (
+                        <div className="mt-0.5 text-[11px] tabular-nums text-gray-500 dark:text-gray-400">
+                          min. {plan.days} zile de condus
+                          <span className="mx-1">·</span>
+                          {plan.nights} {plan.nights === 1 ? 'noapte' : 'nopți'}
+                        </div>
+                      )}
+                      {/* The split the whole thing exists for. A lorry loads
+                          everything then unloads, so only the stretch between
+                          the first pickup and the last drop earns - the rest
+                          is diesel nobody pays for. */}
+                      {split && split.loadedMeters > 0 && (
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] tabular-nums">
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {formatDistance(split.loadedMeters)} încărcat
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-400">·</span>
+                          <span
+                            className={
+                              split.emptyShare >= 0.35
+                                ? 'font-semibold text-amber-700 dark:text-amber-400'
+                                : 'text-gray-500 dark:text-gray-400'
+                            }
+                          >
+                            {formatDistance(split.emptyMeters)} gol (
+                            {Math.round(split.emptyShare * 100)}%)
+                          </span>
+                        </div>
+                      )}
+                      {/* Both bases, deliberately: per loaded km is what the
+                          trade quotes, per total km is what the run costs. A
+                          long approach looks fine on the first and poor on the
+                          second. */}
+                      {value && (
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] tabular-nums">
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">
+                            {value.perTotalKm.toFixed(2)} €/km
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-400">
+                            total
+                          </span>
+                          {value.perLoadedKm != null && (
+                            <>
+                              <span className="text-gray-500 dark:text-gray-400">·</span>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                {value.perLoadedKm.toFixed(2)} încărcat
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : stops.length >= 2 ? (
               <p className="mb-1.5 text-[11px] text-gray-500 dark:text-gray-400">Calculating route...</p>

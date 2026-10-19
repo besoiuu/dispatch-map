@@ -16,7 +16,7 @@ import type { CountryCode } from '@/types/country';
 import { ensurePMTilesProtocol } from '@/lib/pmtiles-protocol';
 import { enableMapCapture } from '@/lib/mapCapture';
 import { useTileMetadata } from '@/hooks/useTileMetadata';
-import { parseRouteHash } from '@/lib/routeHash';
+import { parseRouteHash, parseKinds, parseRevenue } from '@/lib/routeHash';
 
 const USE_PMTILES = process.env.NEXT_PUBLIC_USE_PMTILES === 'true';
 
@@ -106,12 +106,34 @@ export function MapShell() {
         }
         if (existing) {
           store.setActiveRoute(existing.id);
-          for (const item of parsed.items) {
+          // The kind travels WITH each stop, not as a parallel list: the
+          // store appends waypoints and codes in different places (a
+          // waypoint sent first ends up last), and the user can drag stops
+          // or hit optimise afterwards. A positional list would point at
+          // the wrong stops in all three cases.
+          const kinds = parseKinds(params.get('kinds'), parsed.items.length);
+          const codeKinds: NonNullable<ReturnType<() => Record<string, 'pickup' | 'delivery' | 'waypoint'>>> = {};
+          parsed.items.forEach((item, i) => {
+            const kind = kinds?.[i];
             if (item.kind === 'waypoint') {
-              store.addWaypoint(existing.id, item.lngLat);
+              store.addWaypoint(existing!.id, item.lngLat, undefined, undefined, kind);
             } else {
-              store.addPlzToActiveRoute(item.code);
+              if (kind) codeKinds[item.code] = kind;
+              store.addPlzToActiveRoute(item.code, kind ? { kind } : undefined);
             }
+          });
+          // What the stops are FOR, and what the run earns. Both optional -
+          // a link from anywhere else still works, it just draws one line
+          // with no economics on it. `kinds` is rejected unless it is
+          // exactly as long as the stops, because a kinds string out of
+          // step would mark the wrong legs empty.
+          const revenue = parseRevenue(params.get('eur'));
+          const hasKinds = Object.keys(codeKinds).length > 0;
+          if (revenue !== undefined || hasKinds) {
+            store.setRouteBrief(existing.id, {
+              ...(revenue !== undefined ? { revenue } : {}),
+              ...(hasKinds ? { codeKinds } : {}),
+            });
           }
         }
       }

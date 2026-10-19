@@ -13,6 +13,8 @@ export interface AddPlzOptions {
   /** Where the area is. Supplying it creates the stop in the same tick. */
   coordinate?: [number, number];
   label?: string;
+  /** What the stop is for, when the caller knows. */
+  kind?: RouteStop['kind'];
 }
 
 /**
@@ -41,13 +43,15 @@ interface RouteState {
   getRouteForPlz: (plz: string) => Route | undefined;
   undoLastAdd: () => void;
   setRouteGeometry: (id: string, geometry: RouteGeometry | undefined) => void;
+  /** What the run earns and what its codes are for, from an incoming link. */
+  setRouteBrief: (id: string, brief: { revenue?: number; codeKinds?: Route['codeKinds'] }) => void;
   setRouteCalculating: (id: string, calculating: boolean) => void;
   setStops: (id: string, stops: RouteStop[]) => void;
   reorderStop: (routeId: string, fromIndex: number, toIndex: number) => void;
   removeStop: (routeId: string, stopId: string) => void;
   restoreStop: (routeId: string, stop: RouteStop, index: number) => void;
   moveStop: (routeId: string, stopId: string, coordinate: [number, number]) => void;
-  addWaypoint: (routeId: string, coordinate: [number, number], index?: number, label?: string) => void;
+  addWaypoint: (routeId: string, coordinate: [number, number], index?: number, label?: string, kind?: RouteStop['kind']) => void;
   restoreRoute: (route: Route, index: number) => void;
   restoreRouteStops: (id: string, plzCodes: string[], stops: RouteStop[], geometry?: RouteGeometry) => void;
 }
@@ -123,6 +127,7 @@ export const useRouteStore = create<RouteState>()(
               plz,
               label: label ?? plz.split(':').pop() ?? plz,
               coordinate,
+              ...(opts?.kind ? { kind: opts.kind } : {}),
             }
           : null;
 
@@ -195,6 +200,11 @@ export const useRouteStore = create<RouteState>()(
           ),
         }));
       },
+
+      setRouteBrief: (id, brief) =>
+        set((s) => ({
+          routes: s.routes.map((r) => (r.id === id ? { ...r, ...brief } : r)),
+        })),
 
       setRouteGeometry: (id, geometry) =>
         set((s) => ({
@@ -278,7 +288,7 @@ export const useRouteStore = create<RouteState>()(
           }),
         })),
 
-      addWaypoint: (routeId, coordinate, index, label) =>
+      addWaypoint: (routeId, coordinate, index, label, kind) =>
         set((s) => ({
           routes: s.routes.map((r) => {
             if (r.id !== routeId) return r;
@@ -287,6 +297,7 @@ export const useRouteStore = create<RouteState>()(
               type: 'waypoint',
               label: label || 'Waypoint',
               coordinate,
+              ...(kind ? { kind } : {}),
             };
             const stops = [...r.stops];
             if (index !== undefined) {

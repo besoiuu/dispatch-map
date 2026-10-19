@@ -6,6 +6,7 @@ import { RouteMarkers } from './RouteMarkers';
 import { CountryBorders } from './CountryBorders';
 import type { Feature, FeatureCollection, Point, Position } from 'geojson';
 import type { CountryCode } from '@/types/country';
+import { splitRouteLine } from '@/lib/legEconomics';
 import { useMapStore } from '@/store/mapStore';
 import { useRouteStore } from '@/store/routeStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -112,6 +113,47 @@ export function PlzLayers({
             <Layer id={`route-line-fill-${r.id}`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': r.color, 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 4, 14, 5], 'line-opacity': 1 }} />
           </Source>
         ))}
+
+      {/* The empty running, dashed over the solid line.
+          A route drawn as one stroke hides the thing its margin lives in:
+          the approach to the first car and the run home after the last drop
+          earn nothing and burn the same diesel. Drawn ON TOP of the solid
+          line rather than instead of it, so the route still reads as one
+          continuous thing and the dashes say "this part is deadhead". */}
+      {routes
+        .filter((r) => r.visible && r.geometry && r.stops.some((s) => s.kind))
+        .map((r) => {
+          const cut = splitRouteLine(r.geometry!.coordinates, r.stops);
+          if (!cut || cut.empty.length === 0) return null;
+          return (
+            <Source
+              key={`route-empty-${r.id}`}
+              id={`route-empty-${r.id}`}
+              type="geojson"
+              data={{
+                type: 'FeatureCollection',
+                features: cut.empty.map((coords) => ({
+                  type: 'Feature' as const,
+                  properties: {},
+                  geometry: { type: 'LineString' as const, coordinates: coords },
+                })),
+              }}
+            >
+              <Layer
+                id={`route-empty-line-${r.id}`}
+                type="line"
+                layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
+                paint={{
+                  'line-color': dark ? '#1a1a1a' : '#ffffff',
+                  'line-width': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 4, 14, 5],
+                  'line-dasharray': [1.5, 1.5],
+                  'line-opacity': 0.95,
+                }}
+              />
+            </Source>
+          );
+        })}
+
       <RouteMarkers />
     </>
   );

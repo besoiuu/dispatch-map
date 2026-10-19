@@ -125,6 +125,26 @@ An item is either a **prefixed postal code** - `de:40721`, country first,
 the form `lookupPrefixed` needs (see the section above on codes not being
 unique) - or a **coordinate**, `@lat;lng`.
 
+Two optional parameters come with it:
+
+```
+&kinds=wppd     what each stop is FOR, one letter per item, same order
+&eur=1250       what the whole run earns
+```
+
+`kinds` letters are `p` pickup, `d` delivery, `w` waypoint. It is rejected
+unless it is exactly as long as the items, because a kinds string out of
+step marks the wrong legs empty - a confident lie rather than a missing
+feature.
+
+**The kind is stored ON THE STOP, never as a parallel array.** Three things
+reorder stops: the store appends waypoints and codes differently, the user
+drags, and optimise rewrites the order outright. A positional list points at
+the wrong stops in all three. A `codeKinds` map on the route keys them by
+code as well, because the postal index is 1.9 MB and lands after mount - an
+unresolvable code becomes a stop later, in `RoutePanel`, and would otherwise
+lose what it is for on the way.
+
 Three things about it that are not obvious:
 
 - **Coordinates were broken from the start.** They were documented as
