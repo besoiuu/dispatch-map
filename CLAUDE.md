@@ -91,6 +91,40 @@ detail GeoJSON is not fetched at all — nothing reads it. The overview files
 (7 MB) are still loaded, because `Legend` counts and lists regions from them
 in both modes.
 
+## The `#route=` link is a contract with another repo
+
+The loadboard (`remro-live-loads`) turns a selection of loads into a link
+that opens this app with the route already drawn. The format is parsed and
+tested in `src/lib/routeHash.ts`, not in the component, because it is used
+by code that does not live here:
+
+```
+#route=<urlencoded name>:<item>,<item>,...
+```
+
+An item is either a **prefixed postal code** - `de:40721`, country first,
+the form `lookupPrefixed` needs (see the section above on codes not being
+unique) - or a **coordinate**, `@lat;lng`.
+
+Three things about it that are not obvious:
+
+- **Coordinates were broken from the start.** They were documented as
+  `@lat,lng`, but items are split on commas first, so `@51.2277,6.7735`
+  arrived as `@51.2277` - NaN longitude, dropped - and a bare `6.7735`,
+  which then fell through to `addPlzToActiveRoute` as if it were a postal
+  code. That is exactly the failure `routeStore` calls its worst: a code in
+  `plzCodes` that never becomes a stop, shows nothing, and afterwards
+  blocks the duplicate guard. `@lat;lng` is the form to write; `@lat,lng`
+  is still read, by taking the following bare number as the longitude.
+- **The hash is read on mount only.** A link opened while this app is
+  already running does nothing, so whoever generates one should open a new
+  tab.
+- **A route name that already exists is reused**, and
+  `addPlzToActiveRoute` reports `duplicate` for a code that is in ANY
+  route, not just the active one. Sending the same codes twice merges them
+  into the existing route and silently skips anything already placed
+  elsewhere.
+
 ## Postal codes are NOT unique across countries
 
 `plz2`/`plz5` values repeat between countries — 3,423 codes in the index exist

@@ -16,6 +16,7 @@ import type { CountryCode } from '@/types/country';
 import { ensurePMTilesProtocol } from '@/lib/pmtiles-protocol';
 import { enableMapCapture } from '@/lib/mapCapture';
 import { useTileMetadata } from '@/hooks/useTileMetadata';
+import { parseRouteHash } from '@/lib/routeHash';
 
 const USE_PMTILES = process.env.NEXT_PUBLIC_USE_PMTILES === 'true';
 
@@ -93,31 +94,23 @@ export function MapShell() {
           }
         }
       }
-      const routeParam = params.get('route');
-      if (routeParam) {
-        const colonIdx = routeParam.indexOf(':');
-        if (colonIdx > 0) {
-          const name = decodeURIComponent(routeParam.slice(0, colonIdx));
-          const codes = routeParam.slice(colonIdx + 1).split(',').filter(Boolean);
-          if (codes.length > 0) {
-            const store = useRouteStore.getState();
-            let existing = store.routes.find((r) => r.name === name);
-            if (!existing) {
-              store.addRoute(name);
-              existing = useRouteStore.getState().routes.find((r) => r.name === name)!;
-            }
-            if (existing) {
-              store.setActiveRoute(existing.id);
-              for (const code of codes) {
-                if (code.startsWith('@')) {
-                  const [lat, lng] = code.slice(1).split(',').map(Number);
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    store.addWaypoint(existing.id, [lng, lat]);
-                  }
-                } else {
-                  store.addPlzToActiveRoute(code);
-                }
-              }
+      // Parsed in src/lib/routeHash.ts, which is where the format is
+      // described and tested. This only applies the result.
+      const parsed = parseRouteHash(params.get('route'));
+      if (parsed) {
+        const store = useRouteStore.getState();
+        let existing = store.routes.find((r) => r.name === parsed.name);
+        if (!existing) {
+          store.addRoute(parsed.name);
+          existing = useRouteStore.getState().routes.find((r) => r.name === parsed.name)!;
+        }
+        if (existing) {
+          store.setActiveRoute(existing.id);
+          for (const item of parsed.items) {
+            if (item.kind === 'waypoint') {
+              store.addWaypoint(existing.id, item.lngLat);
+            } else {
+              store.addPlzToActiveRoute(item.code);
             }
           }
         }
