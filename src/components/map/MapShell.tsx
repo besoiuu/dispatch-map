@@ -9,6 +9,8 @@ import { useRouteStore } from '@/store/routeStore';
 import { MapView } from './MapView';
 import { ZoomPills } from './ZoomPills';
 import { Sidebar } from '../sidebar/Sidebar';
+import { FleetBridge } from '../fleet/FleetBridge';
+import { FleetPanel } from '../fleet/FleetPanel';
 import { ToastContainer } from '../ui/Toast';
 import { MobileHint } from '../ui/MobileHint';
 import { enabledCountries } from '@/config/countries';
@@ -177,6 +179,8 @@ export function MapShell() {
       <div className="absolute inset-0">
         <MapView detailDataMap={detailDataMap} overviewDataMap={overviewDataMap} usePMTiles={USE_PMTILES} tileMetadata={tileMetadata} />
         <ZoomPills />
+        <FleetBridge />
+        <FleetPanel />
         {loading && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 rounded-lg bg-white/90 px-4 py-2 text-sm text-gray-600 shadow-lg backdrop-blur-sm dark:bg-gray-800/90 dark:text-gray-300 flex items-center gap-2">
             <svg className="h-4 w-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">

@@ -21,6 +21,7 @@ import { loadDetailForCountries, getVisibleCountries } from '@/hooks/useMapData'
 import { PlzLayers } from './PlzLayers';
 import { PlzLayersPMTiles } from './PlzLayersPMTiles';
 import { MapTooltip } from './MapTooltip';
+import { FleetMarkers } from '../fleet/FleetMarkers';
 import dynamic from 'next/dynamic';
 import type { ContextMenuState } from './ContextMenu';
 import type { TileMetadata } from '@/hooks/useTileMetadata';
@@ -504,6 +505,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
         />
       )}
       <MapTooltip />
+      <FleetMarkers />
       {contextMenu && (
         <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />
       )}

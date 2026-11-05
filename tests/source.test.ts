@@ -34,6 +34,9 @@ const code = (p: string) =>
 const FILES = [
   'app/layout.tsx',
   'components/country/CountrySelector.tsx',
+  'components/fleet/FleetBridge.tsx',
+  'components/fleet/FleetMarkers.tsx',
+  'components/fleet/FleetPanel.tsx',
   'components/map/ContextMenu.tsx',
   'components/map/MapShell.tsx',
   'components/map/MapTooltip.tsx',

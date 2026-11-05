@@ -5,6 +5,12 @@
 
 :root {
   --sidebar-width: 300px;
+  --fleet-width: 320px;
+}
+
+/* The fleet panel (components/fleet) takes the left edge; the zoom buttons move aside for it. */
+.fleet-open .maplibregl-ctrl-top-left {
+  left: min(var(--fleet-width), 88vw);
 }
 @media (min-width: 1200px) {
   :root { --sidebar-width: 340px; }
