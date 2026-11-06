@@ -20,6 +20,8 @@
  * the numbers become marker positions; a NaN longitude throws inside MapLibre.
  */
 
+import { validApi, validToken } from './fleetLink';
+
 export type FleetRun = {
   /** The order number, "#58617". */
   id: string;
@@ -51,7 +53,7 @@ export type FleetTruck = {
 };
 
 export type FleetMessage =
-  | { type: 'fleet'; at: string; trucks: FleetTruck[]; focus: string | null }
+  | { type: 'fleet'; at: string; trucks: FleetTruck[]; focus: string | null; link: { token: string; exp: number; api: string } | null }
   | { type: 'fleet-focus'; key: string };
 
 /** Where the TMS is served. More can be added with NEXT_PUBLIC_FLEET_ORIGINS, comma-separated. */
@@ -117,7 +119,12 @@ export function parseFleetMessage(data: unknown): FleetMessage | null {
   }
   if (m.type !== 'fleet' || !Array.isArray(m.trucks)) return null;
   const trucks = m.trucks.slice(0, 200).map(truck).filter((t): t is FleetTruck => t !== null);
-  return { type: 'fleet', at: str(m.at, 40) ?? new Date().toISOString(), trucks, focus: str(m.focus, 20) };
+  const l = m.link && typeof m.link === 'object' ? (m.link as Record<string, unknown>) : null;
+  const token = validToken(l?.token);
+  const api = validApi(l?.api);
+  const exp = num(l?.exp);
+  const link = token && api && exp ? { token, api, exp } : null;
+  return { type: 'fleet', at: str(m.at, 40) ?? new Date().toISOString(), trucks, focus: str(m.focus, 20), link };
 }
 
 /** "acum 4 min", "acum 2 ore", "acum 3 zile": how old a position is, in the TMS's language. */
@@ -134,3 +141,65 @@ export function seenAgo(iso: string, now = Date.now()): string {
 
 /** A position older than this is drawn faded: the truck may well be elsewhere. */
 export const STALE_MS = 3 * 3600_000;
+
+/* ── Reading the TMS's own answers, for the map opened on its own ── */
+
+const bucharestDay = (ms: number) => new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Europe/Bucharest' });
+
+/** "azi 10:42", "ieri 18:40", "mar 4 nov 10:42": the TMS planner's wording, so both read alike. */
+export function dayTime(ms: number, now = Date.now()): string {
+  const hm = new Date(ms).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' });
+  const day = bucharestDay(ms);
+  if (day === bucharestDay(now)) return `azi ${hm}`;
+  if (day === bucharestDay(now - 86_400_000)) return `ieri ${hm}`;
+  const date = new Date(ms)
+    .toLocaleDateString('ro-RO', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Bucharest' })
+    .replace(/\./g, '')
+    .replace(',', '');
+  return `${date} ${hm}`;
+}
+
+/** The TMS's "since the base" answer (its /api/cargotrack/planner) as the planner words it. */
+export function baseText(b: unknown, now = Date.now()): string | null {
+  if (!b || typeof b !== 'object') return null;
+  const o = b as Record<string, unknown>;
+  const km = num(o.km);
+  if (o.state === 'at-base' && num(o.since) != null) return `în bază din ${dayTime(o.since as number, now)}`;
+  if (o.state === 'away' && num(o.leftAt) != null)
+    return `${km != null ? `${km.toLocaleString('ro-RO')} km` : '? km'} de la bază · plecat ${dayTime(o.leftAt as number, now)}`;
+  if (o.state === 'away-longer' && num(o.since) != null) {
+    const d = new Date(o.since as number).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', timeZone: 'Europe/Bucharest' });
+    return `plecat din bază înainte de ${d.replace('.', '')}`;
+  }
+  return null;
+}
+
+/**
+ * One truck from the TMS's /api/cargotrack/trucks, in the shape the panel and
+ * markers take. Null without a usable position.
+ */
+export function truckFromApi(
+  v: unknown,
+  known: Record<string, { driver: string | null; phone: string | null }>,
+): FleetTruck | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const p = o.position && typeof o.position === 'object' ? (o.position as Record<string, unknown>) : null;
+  const place = p?.place && typeof p.place === 'object' ? (p.place as Record<string, unknown>) : null;
+  const city = str(place?.city, 80);
+  const km = num(place?.km) ?? 0;
+  const key = str(o.plateKey, 20);
+  return truck({
+    key,
+    plate: str(o.plate, 20),
+    driver: key ? known[key]?.driver ?? null : null,
+    phone: key ? known[key]?.phone ?? null : null,
+    lat: p?.lat,
+    lon: p?.lon,
+    at: p?.at,
+    moving: p?.moving === true,
+    place: city ? `${km > 3 ? 'lângă ' : ''}${city}, ${str(place?.country, 4) ?? ''}`.replace(/, $/, '') : null,
+    base: null,
+    run: null,
+  });
+}

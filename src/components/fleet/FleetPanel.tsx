@@ -3,15 +3,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { STALE_MS, seenAgo } from '@/lib/fleetBridge';
 import { focusTruck, useFleetStore } from '@/store/fleetStore';
+import { untilDate } from '@/lib/fleetLink';
 import { fitFleet } from './FleetBridge';
 
 /**
- * The fleet, on the left: the route sidebar keeps the right. It exists only
- * when the TMS has handed a fleet in, so the map opened on its own looks as
- * it always did. Romanian, like everything the TMS sends into it.
+ * The fleet, on the left: the route sidebar keeps the right. Romanian, like
+ * everything the TMS sends into it.
+ *
+ * Three states: the TMS's popup handed the fleet in (runs included); the map
+ * opened on its own reads it with the key the TMS gave it (positions, km from
+ * the base, driver names as last told - no runs); or there is no key, and
+ * the panel is a single button that says how to connect.
  */
+const TMS_PLANNER = 'https://remro.herokuapp.com/transport2/transports?lista=flota&vedere=saptamana';
 export function FleetPanel() {
-  const connected = useFleetStore((s) => s.connected);
+  const source = useFleetStore((s) => s.source);
+  const connected = source !== null;
+  const link = useFleetStore((s) => s.link);
+  const refused = useFleetStore((s) => s.linkRefused);
+  const error = useFleetStore((s) => s.error);
+  const [helpOpen, setHelpOpen] = useState(false);
   const open = useFleetStore((s) => s.open);
   const setOpen = useFleetStore((s) => s.setOpen);
   const trucks = useFleetStore((s) => s.trucks);
@@ -31,7 +42,39 @@ export function FleetPanel() {
     list.current?.querySelector(`[data-key="${CSS.escape(selected)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [selected]);
 
-  if (!connected) return null;
+  if (!connected) {
+    // Not connected: one quiet button; the explanation only on request.
+    return (
+      <div className="absolute left-3 top-3 z-30 w-72 max-w-[calc(100vw-1.5rem)]">
+        <button
+          type="button"
+          onClick={() => setHelpOpen((o) => !o)}
+          aria-expanded={helpOpen}
+          className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 shadow-lg hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800"
+        >
+          <TruckIcon />
+          Flotă
+          {refused ? <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">reconectează</span> : null}
+        </button>
+        {helpOpen ? (
+          <div className="mt-2 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-xl dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+            <p className="font-semibold text-gray-900 dark:text-gray-50">{refused ? 'Legătura cu TMS a expirat.' : 'Harta nu e legată de TMS.'}</p>
+            <p className="mt-1">
+              Deschide <span className="font-semibold">Harta flotei</span> din planificarea flotei în TMS. După aceea camioanele apar aici și când deschizi harta singură, 30 de zile, pe acest calculator.
+            </p>
+            <a
+              href={TMS_PLANNER}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+            >
+              Deschide planificarea flotei
+            </a>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   const q = query.trim().toLowerCase();
   const shown = q
@@ -68,6 +111,12 @@ export function FleetPanel() {
             {trucks.length} camioane · <span className="font-semibold text-green-700 dark:text-green-400">{moving} în mers</span>
             {at ? ` · actualizat ${seenAgo(at)}` : ''}
           </p>
+          {source === 'key' && link ? (
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400" title="Cheia primită de la TMS citește doar pozițiile flotei">
+              din TMS, legat până la {untilDate(link.exp)} · cursele apar doar deschisă din TMS
+            </p>
+          ) : null}
+          {error ? <p className="mt-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">{error}: arată ultimele poziții</p> : null}
         </div>
         <button
           type="button"
@@ -147,9 +196,9 @@ export function FleetPanel() {
                     </div>
                     {t.run.gps ? <div className="mt-1 truncate text-xs font-semibold text-green-700 dark:text-green-400">{t.run.gps}</div> : null}
                   </div>
-                ) : (
+                ) : source === 'tms' ? (
                   <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">fără cursă azi</div>
-                )}
+                ) : null}
               </button>
               {/* Outside the button: a link inside a button is not valid, and the tap must dial, not select. */}
               {t.phone ? (
