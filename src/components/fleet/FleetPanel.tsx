@@ -112,8 +112,11 @@ export function FleetPanel() {
             {at ? ` · actualizat ${seenAgo(at)}` : ''}
           </p>
           {source === 'key' && link ? (
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400" title="Cheia primită de la TMS citește doar pozițiile flotei">
-              din TMS, legat până la {untilDate(link.exp)} · cursele apar doar deschisă din TMS
+            <p
+              className="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+              title="Harta citește singură pozițiile flotei din TMS. Cursele de azi apar doar când o deschizi din planificarea flotei."
+            >
+              legat de TMS până la {untilDate(link.exp)}
             </p>
           ) : null}
           {error ? <p className="mt-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">{error}: arată ultimele poziții</p> : null}
