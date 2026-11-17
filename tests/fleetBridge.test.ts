@@ -50,7 +50,7 @@ test('anything not from the TMS, or not well formed, is ignored', () => {
   assert.equal(parseFleetMessage({ type: 'fleet', trucks: [truck] }), null);
   assert.equal(parseFleetMessage({ source: 'remro-tms', type: 'fleet', trucks: 'x' }), null);
   assert.equal(parseFleetMessage('fleet'), null);
-  assert.deepEqual(parseFleetMessage({ source: 'remro-tms', type: 'fleet-focus', key: 'AR18GLI' }), { type: 'fleet-focus', key: 'AR18GLI' });
+  assert.deepEqual(parseFleetMessage({ source: 'remro-tms', type: 'fleet-focus', key: 'AR18GLI' }), { type: 'fleet-focus', key: 'AR18GLI', run: null });
 });
 
 test('a run without a route is dropped, the truck kept', () => {

@@ -65,7 +65,7 @@ export function CountrySelector() {
                   title={`${visible ? 'Hide' : 'Show'} ${countries[code].name}`}
                   className={`flex h-11 min-w-11 cursor-pointer items-center justify-center rounded px-2 text-[10px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     visible
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-blue-600 text-gray-950 hover:bg-blue-400'
                       : 'bg-gray-200 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
                   }`}
                 >

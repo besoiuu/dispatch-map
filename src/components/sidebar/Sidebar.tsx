@@ -115,17 +115,20 @@ export function Sidebar() {
   const loading = useMapStore((s) => s.loading);
 
   return (
-    <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full flex-col bg-white dark:bg-gray-900 border-l-0 md:border-l border-gray-200/80 dark:border-gray-800">
+    <aside aria-label="Dispatch Map sidebar" role="complementary" className="flex h-full w-full flex-col border-l-0 border-gray-200 bg-white md:border-l dark:border-gray-800 dark:bg-gray-900">
       {/* Header */}
-      <div className="shrink-0 px-4 py-3">
+      <div className="shrink-0 px-4 pb-3 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center">
-              <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 shadow-sm">
+              <svg className="h-4 w-4 text-gray-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
             </div>
-            <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dispatch Map</h1>
+            <div className="leading-tight">
+              <h1 className="font-heading text-base font-bold text-gray-900 dark:text-gray-50">Dispatch Map</h1>
+              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">REMRO</p>
+            </div>
           </div>
           <div className="flex items-center gap-0.5">
             <HelpPanel />
@@ -172,7 +175,7 @@ export function Sidebar() {
           href="https://revolut.me/besoiu"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] text-gray-350 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-400 transition-colors"
+          className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-orange-700 dark:text-gray-400 dark:hover:text-orange-300 transition-colors"
         >
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />

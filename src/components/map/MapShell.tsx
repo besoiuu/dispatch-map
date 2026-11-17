@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useMapData } from '@/hooks/useMapData';
-import { useMapStore } from '@/store/mapStore';
+import { storedBase, useMapStore } from '@/store/mapStore';
 import { useThemeStore } from '@/store/themeStore';
 import { setColorBlindMode } from '@/lib/colors';
 import { useRouteStore } from '@/store/routeStore';
@@ -39,6 +39,18 @@ export function MapShell() {
   }, [colorBlind]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Embedded in the TMS's Dispecerat the map is about the fleet: the route
+  // planner starts folded away (its tab on the right edge opens it), so the
+  // map gets the width. On its own the map opens as before.
+  useEffect(() => {
+    // After the first frame, not during hydration: the server renders it open.
+    if (window.parent === window) return;
+    const id = requestAnimationFrame(() => setSidebarCollapsed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle('sidebar-closed', sidebarCollapsed);
+  }, [sidebarCollapsed]);
   const touchStartY = useRef(0);
   const handleSwipeStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -66,6 +78,13 @@ export function MapShell() {
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
+  }, []);
+
+  // The base map: a link's `base=harta|plz` wins over what this browser last chose.
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.hash.slice(1)).get('base');
+    const base = fromLink === 'harta' || fromLink === 'plz' ? fromLink : storedBase();
+    if (base !== useMapStore.getState().base) useMapStore.setState({ base });
   }, []);
 
   // URL hash sync — read on mount
@@ -198,7 +217,7 @@ export function MapShell() {
           // The offset clears the home-bar area, which `viewport-fit: cover`
           // puts the page underneath.
           style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
-          className="cursor-pointer absolute right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-200 md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          className="cursor-pointer absolute right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-gray-950 shadow-lg hover:bg-blue-400 active:scale-95 transition-all duration-200 md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {mobileOpen ? (

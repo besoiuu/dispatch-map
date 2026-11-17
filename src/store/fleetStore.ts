@@ -14,6 +14,8 @@ interface FleetState {
   trucks: FleetTruck[];
   open: boolean;
   selected: string | null;
+  /** The run picked in the TMS's week ("#58617"), drawn stronger than the rest of the truck's route. */
+  run: string | null;
   /** The TMS address and when the key ends, for the panel to say so; null when there is no key. */
   link: { api: string; exp: number } | null;
   /** The TMS refused the key (expired or revoked): the panel offers to reconnect. */
@@ -32,20 +34,74 @@ export const useFleetStore = create<FleetState>((set) => ({
   trucks: [],
   open: false,
   selected: null,
+  run: null,
   link: null,
   linkRefused: false,
   error: null,
 
-  // The first fleet opens the panel; later refreshes leave it as the dispatcher set it.
-  setFleet: (source, at, trucks) => set((s) => ({ source, at, trucks, error: null, open: s.source ? s.open : true })),
+  // The first fleet opens the panel - on a desk. On a phone the panel is the
+  // whole screen, so it waits for the Flotă button and the map shows first.
+  // Later refreshes leave it as the dispatcher set it.
+  setFleet: (source, at, trucks) =>
+    set((s) => ({
+      source,
+      at,
+      trucks,
+      error: null,
+      open: s.source ? s.open : typeof window === 'undefined' || window.innerWidth >= 768,
+    })),
   setOpen: (open) => set({ open }),
   select: (selected) => set({ selected }),
 }));
 
-/** Selects a truck and moves the map to it. */
-export function focusTruck(key: string) {
+/**
+ * Where to tell the TMS that a truck was picked here: the window and origin
+ * the fleet came from (FleetBridge sets it). Null when the map is on its own.
+ */
+let tms: { win: Window; origin: string } | null = null;
+export function setTmsTarget(target: { win: Window; origin: string } | null) {
+  tms = target;
+}
+
+/**
+ * Selects a truck and moves the map to it: to the truck and the rest of its
+ * route when it has one, so the dispatcher sees where it is going, not just
+ * where it is. With `run`, to that run's two ends and the truck.
+ *
+ * `fromTms` is set when the TMS asked for it; otherwise the dispatcher picked
+ * it here, and the TMS is told, so its week marks the same driver.
+ */
+export function focusTruck(key: string, opts: { run?: string | null; fromTms?: boolean } = {}) {
   const t = useFleetStore.getState().trucks.find((x) => x.key === key);
   if (!t) return;
-  useFleetStore.setState({ selected: key, open: true });
-  window.dispatchEvent(new CustomEvent('map:flyto', { detail: { center: [t.lon, t.lat], zoom: 9 } }));
+  const run = opts.run ?? null;
+  // On a phone the panel covers the map: picking a truck shows it on the map, not the list.
+  const wideScreen = typeof window !== 'undefined' && window.innerWidth >= 768;
+  useFleetStore.setState((st) => ({ selected: key, run, open: wideScreen || st.open }));
+  if (!opts.fromTms && tms) {
+    try {
+      tms.win.postMessage({ source: 'dispatch-map', type: 'fleet-select', key }, tms.origin);
+    } catch {
+      /* the TMS window went away */
+    }
+  }
+  const ahead = run ? t.stops.filter((s) => s.order === run) : t.stops.filter((s) => !s.done);
+  const pts: [number, number][] = [[t.lon, t.lat], ...ahead.map((s) => [s.lon, s.lat] as [number, number])];
+  if (pts.length === 1) {
+    window.dispatchEvent(new CustomEvent('map:flyto', { detail: { center: [t.lon, t.lat], zoom: 9 } }));
+    return;
+  }
+  const lons = pts.map((p) => p[0]);
+  const lats = pts.map((p) => p[1]);
+  const pad = 0.15;
+  // The fleet panel covers the left 320 px when open (wide screens): frame the route beside it.
+  const wide = wideScreen;
+  window.dispatchEvent(
+    new CustomEvent('map:flyto', {
+      detail: {
+        bbox: [Math.min(...lons) - pad, Math.min(...lats) - pad, Math.max(...lons) + pad, Math.max(...lats) + pad],
+        padding: { top: 60, bottom: 60, right: 60, left: wide ? 360 : 40 },
+      },
+    }),
+  );
 }

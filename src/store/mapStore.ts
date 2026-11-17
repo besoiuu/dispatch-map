@@ -3,6 +3,29 @@ import type { FeatureCollection } from 'geojson';
 import type { CountryCode } from '@/types/country';
 import { defaultCountry } from '@/config/countries';
 
+/**
+ * What the map shows underneath: `plz` the coloured postal regions over a pale
+ * base (the planning view this app was built for), `harta` a full road map
+ * with the regions switched off - the everyday "where is this" view, like
+ * Google Maps, from OpenFreeMap (config/mapStyle). Routes, pins and the fleet
+ * draw on both. Remembered per browser.
+ */
+export type BaseMap = 'plz' | 'harta';
+const BASE_KEY = 'dispatch-base-map';
+
+/**
+ * The remembered choice, read AFTER hydration (MapShell calls it on mount).
+ * Read while the store was created, it differed between the server render and
+ * the browser, and the switch showed the other view pressed.
+ */
+export function storedBase(): BaseMap {
+  try {
+    return window.localStorage.getItem(BASE_KEY) === 'harta' ? 'harta' : 'plz';
+  } catch {
+    return 'plz';
+  }
+}
+
 interface MapState {
   zoom: number;
   activeCountry: CountryCode;
@@ -14,6 +37,7 @@ interface MapState {
   hoveredCountry: string | null;
   highlightedPlz: string | null;
   loading: boolean;
+  base: BaseMap;
 
   setZoom: (zoom: number) => void;
   setActiveCountry: (country: CountryCode) => void;
@@ -24,6 +48,7 @@ interface MapState {
   setHoveredFeatureId: (id: string | null, name?: string | null, country?: string | null) => void;
   setHighlightedPlz: (plz: string | null) => void;
   setLoading: (loading: boolean) => void;
+  setBase: (base: BaseMap) => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
@@ -37,6 +62,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   hoveredCountry: null,
   highlightedPlz: null,
   loading: true,
+  base: 'plz',
 
   setZoom: (zoom) => set({ zoom }),
   setActiveCountry: (activeCountry) => set({ activeCountry }),
@@ -53,4 +79,12 @@ export const useMapStore = create<MapState>((set, get) => ({
   setHoveredFeatureId: (hoveredFeatureId, hoveredFeatureName = null, hoveredCountry = null) => set({ hoveredFeatureId, hoveredFeatureName, hoveredCountry }),
   setHighlightedPlz: (highlightedPlz) => set({ highlightedPlz }),
   setLoading: (loading) => set({ loading }),
+  setBase: (base) => {
+    try {
+      window.localStorage.setItem(BASE_KEY, base);
+    } catch {
+      /* private window: the choice lasts this visit */
+    }
+    set({ base });
+  },
 }));

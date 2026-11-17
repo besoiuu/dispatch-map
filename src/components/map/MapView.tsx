@@ -9,7 +9,7 @@ import Map, {
 } from 'react-map-gl/maplibre';
 import type { FeatureCollection } from 'geojson';
 import type { CountryCode } from '@/types/country';
-import { MAP_STYLE_LIGHT, MAP_STYLE_DARK } from '@/config/mapStyle';
+import { MAP_STYLE_LIGHT, MAP_STYLE_DARK, ROAD_STYLE_LIGHT, ROAD_STYLE_DARK } from '@/config/mapStyle';
 import { countries, enabledCountries } from '@/config/countries';
 import { useMapStore } from '@/store/mapStore';
 import { useRouteStore } from '@/store/routeStore';
@@ -22,6 +22,7 @@ import { PlzLayers } from './PlzLayers';
 import { PlzLayersPMTiles } from './PlzLayersPMTiles';
 import { MapTooltip } from './MapTooltip';
 import { FleetMarkers } from '../fleet/FleetMarkers';
+import { FleetRoutes } from '../fleet/FleetRoutes';
 import dynamic from 'next/dynamic';
 import type { ContextMenuState } from './ContextMenu';
 import type { TileMetadata } from '@/hooks/useTileMetadata';
@@ -55,6 +56,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
   const hiddenCountries = useMapStore((s) => s.hiddenCountries);
 
   const dark = useThemeStore((s) => s.dark);
+  const base = useMapStore((s) => s.base);
   const config = countries[activeCountry];
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
@@ -331,11 +333,13 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
     const handler = (e: Event) => {
       const map = mapRef.current?.getMap();
       if (!map) return;
-      const { bbox, center, zoom } = (e as CustomEvent).detail ?? {};
+      const { bbox, center, zoom, padding } = (e as CustomEvent).detail ?? {};
       if (bbox) {
+        // `padding` lets a caller keep clear of something drawn over the map
+        // (the fleet panel on the left); without it, 40 px all round as before.
         map.fitBounds(
           [[bbox[0], bbox[1]], [bbox[2], bbox[3]]],
-          { padding: 40, maxZoom: 13 }
+          { padding: padding ?? 40, maxZoom: 13 }
         );
       } else if (center) {
         // Search now hands over a point from the postal-code index, because it
@@ -463,7 +467,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
   return (
     <Map
       ref={mapRef}
-      mapStyle={dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT}
+      mapStyle={base === 'harta' ? (dark ? ROAD_STYLE_DARK : ROAD_STYLE_LIGHT) : dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT}
       initialViewState={{
         longitude: 8.5,
         latitude: 51.0,
@@ -505,6 +509,7 @@ export function MapView({ detailDataMap, overviewDataMap, usePMTiles, tileMetada
         />
       )}
       <MapTooltip />
+      <FleetRoutes />
       <FleetMarkers />
       {contextMenu && (
         <ContextMenu state={contextMenu} onClose={() => setContextMenu(null)} />

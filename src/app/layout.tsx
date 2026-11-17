@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { DM_Sans, Geist_Mono, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-});
+// The REMRO TMS's three faces (remro-frontend app/layout.tsx): DM Sans for
+// text, Space Grotesk for headings, Geist Mono for codes and plates. latin-ext
+// for the Romanian, German, Polish and Czech place names.
+const dmSans = DM_Sans({ variable: '--font-dm-sans', subsets: ['latin', 'latin-ext'] });
+const spaceGrotesk = Space_Grotesk({ variable: '--font-space-grotesk', subsets: ['latin', 'latin-ext'] });
+const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Dispatch Map',
@@ -35,7 +37,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#2563eb',
+  themeColor: '#ee7a1d',
 };
 
 export default function RootLayout({
@@ -50,7 +52,7 @@ export default function RootLayout({
     // setting - can never render it. React compared the two and warned on
     // every load, then remounted the tree. The attribute exists for exactly
     // this: something outside React owns this class.
-    <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://basemaps.cartocdn.com" />
         <link rel="preconnect" href="https://router.project-osrm.org" />

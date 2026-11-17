@@ -99,7 +99,7 @@ export function RouteManager() {
               </button>
               <button
                 onClick={handleImport}
-                className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 active:bg-blue-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-1 text-xs font-semibold text-gray-950 hover:bg-blue-400 active:bg-blue-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 Import
               </button>
@@ -119,7 +119,7 @@ export function RouteManager() {
         />
         <button
           onClick={handleAddRoute}
-          className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900"
+          className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-gray-950 hover:bg-blue-400 active:bg-blue-700 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-900"
         >
           Add
         </button>

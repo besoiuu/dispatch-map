@@ -26,18 +26,21 @@ interface PlzLayersPMTilesProps {
 export function PlzLayersPMTiles({ tileMetadata, highlightedPlz }: PlzLayersPMTilesProps) {
   const hoveredFeatureId = useMapStore((s) => s.hoveredFeatureId);
   const hiddenCountries = useMapStore((s) => s.hiddenCountries);
+  const base = useMapStore((s) => s.base);
   const routes = useRouteStore((s) => s.routes);
   const dark = useThemeStore((s) => s.dark);
   const colorBlind = useThemeStore((s) => s.colorBlind);
 
   return (
     <>
-      <CountryBorders dark={dark} />
+      {/* The road map draws its own borders; ours are for the postal view. */}
+      {base === 'plz' ? <CountryBorders dark={dark} /> : null}
       {enabledCountries.map((code) => (
         <CountryLayersPMTiles
           key={code}
           code={code}
-          visible={!hiddenCountries.has(code)}
+          // On the road map the regions are off; routes and borders still draw.
+          visible={base === 'plz' && !hiddenCountries.has(code)}
           plz2Codes={tileMetadata[code]?.plz2Codes ?? []}
           hoveredFeatureId={hoveredFeatureId}
           highlightedPlz={highlightedPlz}
@@ -188,7 +191,7 @@ function CountryLayersPMTiles({
         <Layer id={`plz5-neighbor-${code}`} source-layer="detail" type="line" minzoom={threshold} maxzoom={24}
           layout={{ visibility: vis }}
           filter={neighborFilter as any}
-          paint={{ 'line-color': '#3b82f6', 'line-width': 1.5, 'line-opacity': 0.6 }} />
+          paint={{ 'line-color': '#ee7a1d', 'line-width': 1.5, 'line-opacity': 0.7 }} />
         <Layer id={`plz5-hover-${code}`} source-layer="detail" type="fill" minzoom={threshold} maxzoom={24}
           layout={{ visibility: vis }}
           filter={hoverFilter as any}

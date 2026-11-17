@@ -12,7 +12,12 @@
  *
  *   map  -> parent   { source: "dispatch-map", type: "fleet-ready" }
  *   parent -> map    { source: "remro-tms", type: "fleet", at, trucks, focus? }
- *   parent -> map    { source: "remro-tms", type: "fleet-focus", key }
+ *   parent -> map    { source: "remro-tms", type: "fleet-focus", key, run? }
+ *   map  -> parent   { source: "dispatch-map", type: "fleet-select", key }
+ *
+ * "fleet-select" says which truck the dispatcher picked ON THE MAP (marker or
+ * panel), so the TMS's Dispecerat can mark that driver in its week. It goes
+ * only to the origin the fleet came from.
  *
  * "fleet-ready" carries no data, so it goes to any parent. Everything coming
  * the other way is checked twice: the sender's origin against the allow-list,
@@ -33,6 +38,23 @@ export type FleetRun = {
   gps: string | null;
 };
 
+/** One end of a run (the TMS's Dispecerat.tsx FleetStop). */
+export type FleetStop = {
+  /** "58617:pickup". */
+  id: string;
+  /** "#58617". */
+  order: string;
+  kind: 'pickup' | 'delivery';
+  /** The order's code for the place, "DE40221". */
+  code: string;
+  lat: number;
+  lon: number;
+  /** "Jo 6", or null when outside the week. */
+  day: string | null;
+  /** The GPS saw it done: left the pickup, or reached the delivery. */
+  done: boolean;
+};
+
 export type FleetTruck = {
   /** The plate without spaces, "AR87GLI": the identity of the truck. */
   key: string;
@@ -50,11 +72,15 @@ export type FleetTruck = {
   /** "2.431 km de la bază · plecat lun 2 nov 09:01", or "în bază din ...". */
   base: string | null;
   run: FleetRun | null;
+  /** The week driven so far, [lon, lat] oldest first. Empty when the TMS sent none. */
+  trail: [number, number][];
+  /** This week's runs' ends, in order. Empty opened on its own: runs need the TMS login. */
+  stops: FleetStop[];
 };
 
 export type FleetMessage =
   | { type: 'fleet'; at: string; trucks: FleetTruck[]; focus: string | null; link: { token: string; exp: number; api: string } | null }
-  | { type: 'fleet-focus'; key: string };
+  | { type: 'fleet-focus'; key: string; run: string | null };
 
 /** Where the TMS is served. More can be added with NEXT_PUBLIC_FLEET_ORIGINS, comma-separated. */
 const DEFAULT_ORIGINS = [
@@ -108,7 +134,35 @@ function truck(v: unknown): FleetTruck | null {
     place: str(o.place),
     base: str(o.base),
     run,
+    trail: trailOf(o.trail),
+    stops: Array.isArray(o.stops) ? o.stops.slice(0, 60).map(stop).filter((x): x is FleetStop => x !== null) : [],
   };
+}
+
+const lngLat = (lon: number | null, lat: number | null) => lon != null && lat != null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+
+/** [lon, lat] pairs; anything else in the list is skipped, and the list is capped. */
+export function trailOf(v: unknown): [number, number][] {
+  if (!Array.isArray(v)) return [];
+  const out: [number, number][] = [];
+  for (const p of v.slice(0, 1500)) {
+    if (!Array.isArray(p)) continue;
+    const lon = num(p[0]);
+    const lat = num(p[1]);
+    if (lngLat(lon, lat)) out.push([lon!, lat!]);
+  }
+  return out;
+}
+
+function stop(v: unknown): FleetStop | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const id = str(o.id, 40);
+  const order = str(o.order, 20);
+  const lat = num(o.lat);
+  const lon = num(o.lon);
+  if (!id || !order || (o.kind !== 'pickup' && o.kind !== 'delivery') || !lngLat(lon, lat)) return null;
+  return { id, order, kind: o.kind, code: str(o.code, 30) ?? '—', lat: lat!, lon: lon!, day: str(o.day, 20), done: o.done === true };
 }
 
 /** The message, or null when it is not one of ours or not well formed. */
@@ -118,7 +172,7 @@ export function parseFleetMessage(data: unknown): FleetMessage | null {
   if (m.source !== 'remro-tms') return null;
   if (m.type === 'fleet-focus') {
     const key = str(m.key, 20);
-    return key ? { type: 'fleet-focus', key } : null;
+    return key ? { type: 'fleet-focus', key, run: str(m.run, 20) } : null;
   }
   if (m.type !== 'fleet' || !Array.isArray(m.trucks)) return null;
   const trucks = m.trucks.slice(0, 200).map(truck).filter((t): t is FleetTruck => t !== null);
@@ -204,5 +258,7 @@ export function truckFromApi(
     place: city ? `${km > 3 ? 'lângă ' : ''}${city}, ${str(place?.country, 4) ?? ''}`.replace(/, $/, '') : null,
     base: null,
     run: null,
+    trail: [],
+    stops: [],
   });
 }

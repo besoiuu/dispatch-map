@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { STALE_MS, seenAgo } from '@/lib/fleetBridge';
+import { STALE_MS, seenAgo, type FleetTruck } from '@/lib/fleetBridge';
+import { legsAhead } from '@/lib/fleetRoutes';
 import { focusTruck, useFleetStore } from '@/store/fleetStore';
 import { untilDate } from '@/lib/fleetLink';
 import { fitFleet } from './FleetBridge';
@@ -30,6 +31,7 @@ export function FleetPanel() {
   const trucks = useFleetStore((s) => s.trucks);
   const at = useFleetStore((s) => s.at);
   const selected = useFleetStore((s) => s.selected);
+  const run = useFleetStore((s) => s.run);
   const [query, setQuery] = useState('');
   const list = useRef<HTMLUListElement>(null);
 
@@ -68,7 +70,7 @@ export function FleetPanel() {
               href={plannerUrl(link?.api)}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-orange-500 px-3 text-sm font-semibold text-gray-950 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
             >
               Deschide planificarea flotei
             </a>
@@ -205,6 +207,7 @@ export function FleetPanel() {
                   <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">fără cursă azi</div>
                 ) : null}
               </button>
+              {on && t.stops.length ? <StopList truck={t} run={run} /> : null}
               {/* Outside the button: a link inside a button is not valid, and the tap must dial, not select. */}
               {t.phone ? (
                 <a
@@ -221,6 +224,50 @@ export function FleetPanel() {
         })}
       </ul>
     </aside>
+  );
+}
+
+/**
+ * The selected truck's week, stop by stop, as the map draws it: which end it
+ * is, the order's code for the place, the planned day, and whether the GPS has
+ * seen it done. The leg into each stop says if it is driven loaded or empty.
+ */
+function StopList({ truck, run }: { truck: FleetTruck; run: string | null }) {
+  const ahead = new Map(legsAhead(truck).map((l) => [l.to.id, l.loaded]));
+  return (
+    <ol aria-label="Traseul săptămânii" className="mx-4 mb-3 space-y-px rounded-lg border border-gray-200 bg-white py-1 dark:border-gray-700 dark:bg-gray-900">
+      {truck.stops.map((s) => {
+        const loaded = ahead.get(s.id);
+        const inRun = run != null && s.order === run;
+        return (
+          <li
+            key={s.id}
+            className={`flex items-center gap-2 px-2.5 py-1 text-xs ${s.done ? 'text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'} ${
+              inRun ? 'bg-orange-50 dark:bg-orange-500/10' : ''
+            }`}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" className="shrink-0">
+              {s.kind === 'pickup' ? <path d="M5 1 L9.5 9 L0.5 9 Z" fill="#2f8f5b" /> : <path d="M0.5 1 L9.5 1 L5 9 Z" fill="currentColor" />}
+            </svg>
+            <span className="sr-only">{s.kind === 'pickup' ? 'Încărcare' : 'Descărcare'}</span>
+            <span className="font-mono font-semibold">{s.code}</span>
+            <span className="truncate text-gray-500 dark:text-gray-400">
+              {s.order}
+              {s.day ? ` · ${s.day}` : ''}
+            </span>
+            <span className="ml-auto shrink-0 font-semibold">
+              {s.done ? (
+                'făcut'
+              ) : loaded === undefined ? null : loaded ? (
+                <span className="text-green-700 dark:text-green-400">plin</span>
+              ) : (
+                <span className="text-gray-500 dark:text-gray-400">gol</span>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

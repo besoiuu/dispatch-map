@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { allowedFleetOrigin, baseText, parseFleetMessage, truckFromApi, type FleetTruck } from '@/lib/fleetBridge';
+import { allowedFleetOrigin, baseText, parseFleetMessage, trailOf, truckFromApi, type FleetTruck } from '@/lib/fleetBridge';
 import { clearLink, hashWithoutLink, linkFromHash, loadLink, saveLink, type FleetLink } from '@/lib/fleetLink';
-import { focusTruck, useFleetStore } from '@/store/fleetStore';
+import { focusTruck, setTmsTarget, useFleetStore } from '@/store/fleetStore';
 
 const POSITIONS_MS = 2 * 60_000;
 const BASE_MS = 10 * 60_000;
@@ -36,15 +36,16 @@ export function FleetBridge() {
         if (!allowedFleetOrigin(e.origin)) return;
         const m = parseFleetMessage(e.data);
         if (!m) return;
+        if (e.source && 'postMessage' in e.source) setTmsTarget({ win: e.source as Window, origin: e.origin });
         if (m.type === 'fleet') {
           const first = useFleetStore.getState().source !== 'tms';
           useFleetStore.getState().setFleet('tms', m.at, m.trucks);
           remember(m.trucks, m.link);
           // A focus is honoured when it is new, so a two-minute refresh does not pull the map back.
-          if (m.focus && (first || m.focus !== useFleetStore.getState().selected)) focusTruck(m.focus);
+          if (m.focus && (first || m.focus !== useFleetStore.getState().selected)) focusTruck(m.focus, { fromTms: true });
           else if (first && m.trucks.length) fitFleet();
         } else {
-          focusTruck(m.key);
+          focusTruck(m.key, { run: m.run, fromTms: true });
         }
       };
       window.addEventListener('message', onMessage);
@@ -55,7 +56,7 @@ export function FleetBridge() {
 
     // On its own: read with the key, if there is one.
     let stopped = false;
-    let bases: Record<string, string | null> = {};
+    let bases: Record<string, Base> = {};
     let basesAt = 0;
     let first = true;
 
@@ -69,7 +70,7 @@ export function FleetBridge() {
         const trucks = (body.trucks ?? [])
           .map((t) => truckFromApi(t, link.drivers))
           .filter((t): t is FleetTruck => t !== null)
-          .map((t) => ({ ...t, base: bases[t.key] ?? null }));
+          .map((t) => ({ ...t, base: bases[t.key]?.base ?? null, trail: bases[t.key]?.trail ?? [] }));
         useFleetStore.getState().setFleet('key', body.at ?? new Date().toISOString(), trucks);
         if (first && trucks.length) fitFleet();
         first = false;
@@ -78,7 +79,9 @@ export function FleetBridge() {
           bases = await readBases(link, trucks.map((t) => t.key), () => stopped);
           if (stopped) return;
           const now = useFleetStore.getState();
-          useFleetStore.setState({ trucks: now.trucks.map((t) => ({ ...t, base: bases[t.key] ?? t.base })) });
+          useFleetStore.setState({
+            trucks: now.trucks.map((t) => ({ ...t, base: bases[t.key]?.base ?? t.base, trail: bases[t.key]?.trail ?? t.trail })),
+          });
         }
       } catch (e) {
         if (stopped) return;
@@ -124,8 +127,11 @@ function mondayIso(now = Date.now()): string {
 }
 
 /** "Km since the base" for each truck, one at a time: the route reads one truck per call. */
-async function readBases(link: FleetLink, keys: string[], stopped: () => boolean): Promise<Record<string, string | null>> {
-  const out: Record<string, string | null> = {};
+type Base = { base: string | null; trail: [number, number][] };
+
+/** "Km since the base" and the week driven, per truck: the same answer carries both. */
+async function readBases(link: FleetLink, keys: string[], stopped: () => boolean): Promise<Record<string, Base>> {
+  const out: Record<string, Base> = {};
   for (const key of keys) {
     if (stopped()) break;
     try {
@@ -134,11 +140,11 @@ async function readBases(link: FleetLink, keys: string[], stopped: () => boolean
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ weekStart: mondayIso(), truck: key, stops: [] }),
       });
-      const body = (await r.json()) as { trucks?: Record<string, { base?: unknown }> };
-      out[key] = baseText(body.trucks?.[key]?.base);
+      const body = (await r.json()) as { trucks?: Record<string, { base?: unknown; trail?: unknown }> };
+      out[key] = { base: baseText(body.trucks?.[key]?.base), trail: trailOf(body.trucks?.[key]?.trail) };
     } catch (e) {
       if (e instanceof Refused) throw e;
-      out[key] = null;
+      out[key] = { base: null, trail: [] };
     }
   }
   return out;

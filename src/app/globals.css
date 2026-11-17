@@ -6,6 +6,15 @@
 :root {
   --sidebar-width: 300px;
   --fleet-width: 320px;
+  /* How much of the map's right edge the sidebar covers: none on a phone (it is a sheet) or when folded. */
+  --map-right: 0px;
+  /* And the left edge, which the open fleet panel covers on wide screens. */
+  --map-left: 0px;
+}
+@media (min-width: 768px) {
+  :root { --map-right: var(--sidebar-width); }
+  .sidebar-closed { --map-right: 0px; }
+  .fleet-open { --map-left: var(--fleet-width); }
 }
 
 /* The fleet panel (components/fleet) takes the left edge; the zoom buttons move aside for it. */
@@ -35,7 +44,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgb(43 39 36 / 0.18);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -58,7 +67,98 @@ body {
 }
 
 @theme inline {
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-dm-sans);
+  --font-heading: var(--font-space-grotesk);
+  --font-mono: var(--font-geist-mono);
+}
+
+/*
+ * The REMRO TMS look (remro-frontend app/globals.css), because this map is a
+ * TMS product: it moves to harta.remro.ro. Tailwind v4 keeps every colour
+ * scale in a CSS variable, so the scales the components already use are
+ * re-pointed here instead of rewriting hundreds of class names:
+ *
+ *   gray-*            the TMS's warm neutrals: paper #faf8f6, line #e8e2db,
+ *                     ink-mute #766d64, ink-soft #57504a, ink #2b2724, and its
+ *                     dark surfaces #1d1a17 / #131110.
+ *   blue-*, orange-*  the TMS brand orange, #ee7a1d at 500, #b4560c at 700.
+ *
+ * Text on the orange is dark, never white (the TMS's rule: white on #ee7a1d
+ * is 2.6:1). Components that put text on it use text-gray-950.
+ */
+@theme {
+  --color-gray-50: #faf8f6;
+  --color-gray-100: #f2ece6;
+  --color-gray-200: #e8e2db;
+  --color-gray-300: #d3ccc2;
+  --color-gray-350: #c2b9ae;
+  --color-gray-400: #a39a90;
+  --color-gray-500: #766d64;
+  --color-gray-600: #57504a;
+  --color-gray-700: #3e3833;
+  --color-gray-800: #2a2622;
+  --color-gray-900: #1d1a17;
+  --color-gray-950: #131110;
+
+  --color-blue-50: #fdf4ea;
+  --color-blue-100: #fdeedd;
+  --color-blue-200: #f9d2aa;
+  --color-blue-300: #f5b273;
+  --color-blue-400: #f29447;
+  --color-blue-500: #ee7a1d;
+  --color-blue-600: #ee7a1d;
+  --color-blue-700: #b4560c;
+  --color-blue-800: #8f440b;
+  --color-blue-900: #5c300f;
+  --color-blue-950: #3d2a15;
+
+  --color-orange-50: #fdf4ea;
+  --color-orange-100: #fdeedd;
+  --color-orange-200: #f9d2aa;
+  --color-orange-300: #f7ad69;
+  --color-orange-400: #f29447;
+  --color-orange-500: #ee7a1d;
+  --color-orange-600: #d9650f;
+  --color-orange-700: #b4560c;
+  --color-orange-800: #8f440b;
+  --color-orange-900: #5c300f;
+  --color-orange-950: #3d2a15;
+
+  --color-green-400: #46b277;
+  --color-green-500: #2f8f5b;
+  --color-green-600: #12813f;
+  --color-green-700: #0d6a33;
+
+  --shadow-sm: 0 1px 2px rgb(43 39 36 / 0.04), 0 1px 3px rgb(43 39 36 / 0.05);
+  --shadow-md: 0 2px 4px rgb(43 39 36 / 0.05), 0 8px 18px -6px rgb(43 39 36 / 0.16);
+  --shadow-lg: 0 2px 4px rgb(43 39 36 / 0.05), 0 14px 32px -12px rgb(43 39 36 / 0.24);
+  --shadow-xl: 0 2px 4px rgb(43 39 36 / 0.05), 0 22px 48px -16px rgb(43 39 36 / 0.26);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  color: #2b2724;
+  background: #faf8f6;
+}
+.dark body {
+  color: #f2eee9;
+  background: #131110;
+}
+:focus-visible {
+  outline-color: #ee7a1d;
+}
+::placeholder {
+  color: #766d64;
+}
+.dark ::placeholder {
+  color: #938b82;
+}
+.font-heading {
+  font-family: var(--font-heading), var(--font-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes slide-up {
@@ -74,31 +174,70 @@ body {
   100% { background-position: 200% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background: linear-gradient(90deg, #e8e2db 25%, #f2ece6 50%, #e8e2db 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
 }
 .dark .skeleton {
-  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background: linear-gradient(90deg, #2a2622 25%, #3e3833 50%, #2a2622 75%);
   background-size: 200% 100%;
 }
 
 
 ::selection {
-  background: rgba(59, 130, 246, 0.25);
+  background: rgb(238 122 29 / 0.28);
 }
 .dark ::selection {
-  background: rgba(59, 130, 246, 0.35);
+  background: rgb(238 122 29 / 0.38);
 }
 
+/* Under the Flotă button (top-3, 44 px tall), not behind it. */
 .maplibregl-ctrl-top-left {
+  top: calc(env(safe-area-inset-top) + 60px) !important;
+}
+.fleet-open .maplibregl-ctrl-top-left {
   top: env(safe-area-inset-top) !important;
 }
 
 .maplibregl-popup-content {
   padding: 8px 12px !important;
-  border-radius: 6px !important;
+  border-radius: 10px !important;
   font-size: 13px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  color: #2b2724;
+  box-shadow: 0 2px 4px rgb(43 39 36 / 0.05), 0 14px 32px -12px rgb(43 39 36 / 0.24) !important;
+}
+
+/* MapLibre's own controls, in the TMS's surface and line colours. */
+.maplibregl-ctrl-group {
+  border-radius: 12px !important;
+  overflow: hidden;
+  background: #ffffff !important;
+  box-shadow: 0 2px 4px rgb(43 39 36 / 0.05), 0 8px 18px -6px rgb(43 39 36 / 0.16) !important;
+  border: 1px solid #e8e2db;
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: #e8e2db !important;
+}
+.dark .maplibregl-ctrl-group {
+  background: #1d1a17 !important;
+  border-color: #332e29;
+}
+.dark .maplibregl-ctrl-group button + button {
+  border-top-color: #332e29 !important;
+}
+.dark .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.92);
+}
+.maplibregl-ctrl-attrib {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 11px;
+  color: #57504a;
+}
+.dark .maplibregl-ctrl-attrib {
+  background: rgb(29 26 23 / 0.75) !important;
+  color: #a9a098;
+}
+.dark .maplibregl-ctrl-attrib a {
+  color: #d3ccc2;
 }

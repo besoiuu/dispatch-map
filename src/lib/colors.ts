@@ -69,8 +69,11 @@ export function getRegionColor(plz2: string): string {
   if (cached) return cached;
 
   const hue = countryHueMode ? codeToHueCountry(plz2) : (colorBlindMode ? codeToHueCB(plz2) : codeToHue(plz2));
-  const sat = colorBlindMode ? 30 : (countryHueMode ? 55 : 60);
-  const light = colorBlindMode ? (60 + (codeToHue(plz2) % 15)) : (countryHueMode ? (45 + (codeToHue(plz2) % 15)) : 50);
+  // Calmer than before (55-60% saturation at 45-60% light): the regions are
+  // the ground the routes and the fleet are drawn on, in the TMS's quiet,
+  // warm look, not the loudest thing on screen. Still one hue per country.
+  const sat = colorBlindMode ? 30 : (countryHueMode ? 40 : 45);
+  const light = colorBlindMode ? (60 + (codeToHue(plz2) % 15)) : (countryHueMode ? (52 + (codeToHue(plz2) % 12)) : 56);
   const color = hslToHex(hue, sat, light);
   regionColorCache.set(key, color);
   return color;

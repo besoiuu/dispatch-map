@@ -158,7 +158,7 @@ function _printRouteInner(route: Route, stops: RouteStop[]): void {
   .header-left h1 { font-size: 20px; font-weight: 700; color: #0f172a; }
   .header-left .meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
   .header-right { text-align: right; font-size: 11px; color: #94a3b8; }
-  .header-right .brand { font-weight: 600; color: #3b82f6; }
+  .header-right .brand { font-weight: 600; color: #b4560c; }
   .map-container { padding: 20px 28px; }
   .map-container img { width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; filter: saturate(0) brightness(1.2) contrast(0.85); }
   .summary { display: flex; gap: 24px; padding: 16px 28px; background: ${route.color}08; border-top: 1px solid ${route.color}15; border-bottom: 1px solid ${route.color}15; }
@@ -176,8 +176,8 @@ function _printRouteInner(route: Route, stops: RouteStop[]): void {
   .stop-dist, .stop-dur { font-variant-numeric: tabular-nums; color: #64748b; font-size: 12px; text-align: right; white-space: nowrap; }
   .cc { display: inline-block; background: #f1f5f9; color: #64748b; font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-right: 4px; }
   .footer { padding: 16px 28px; text-align: center; font-size: 10px; color: #cbd5e1; border-top: 1px solid #f1f5f9; }
-  .print-btn { display: block; margin: 16px auto; padding: 10px 32px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .print-btn:hover { background: #2563eb; }
+  .print-btn { display: block; margin: 16px auto; padding: 10px 32px; background: #ee7a1d; color: #2b2724; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .print-btn:hover { background: #f29447; }
   @media print {
     body { background: #fff; margin: 0; }
     .page { box-shadow: none; }

@@ -354,7 +354,8 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
                 setEditName(route.name);
                 setEditing(true);
               }}
-              className="cursor-pointer min-h-11 flex-1 rounded px-1 text-left text-sm font-medium text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-200"
+              title={route.name}
+              className="min-h-11 min-w-0 flex-1 cursor-pointer truncate rounded px-1 text-left font-heading text-sm font-semibold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-gray-100"
             >
               {route.name}
             </button>
@@ -373,8 +374,8 @@ export function RoutePanel({ route, isActive, onActivate }: RoutePanelProps) {
             <span
               className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums"
               style={{
-                backgroundColor: stops.length > 0 ? route.color : '#9ca3af',
-                color: textOn(stops.length > 0 ? route.color : '#9ca3af'),
+                backgroundColor: stops.length > 0 ? route.color : '#a39a90',
+                color: textOn(stops.length > 0 ? route.color : '#a39a90'),
               }}
             >
               {stops.length}

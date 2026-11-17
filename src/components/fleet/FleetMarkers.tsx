@@ -40,7 +40,7 @@ export function FleetMarkers() {
               <div
                 className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border-2 px-2 py-1 font-mono text-[11px] font-bold shadow-lg transition-transform duration-150 hover:scale-105 ${
                   on
-                    ? 'border-white bg-orange-500 text-white'
+                    ? 'border-white bg-orange-500 text-gray-950'
                     : 'border-white bg-gray-900 text-white dark:border-gray-200 dark:bg-gray-800'
                 }`}
               >
