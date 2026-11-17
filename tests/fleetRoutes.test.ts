@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { parseFleetMessage, type FleetStop, type FleetTruck } from '@/lib/fleetBridge';
-import { fleetGeo, legsAhead } from '@/lib/fleetRoutes';
+import { fleetGeo, focusPoints, legsAhead } from '@/lib/fleetRoutes';
 
 const stop = (order: string, kind: 'pickup' | 'delivery', lon: number, lat: number, done = false): FleetStop => ({
   id: `${order.slice(1)}:${kind}`,
@@ -111,4 +111,15 @@ test('a focus from the TMS can name a run', () => {
     key: 'AR87GLI',
     run: '#58617',
   });
+});
+
+test('picking a run frames the run, not a truck far away that has not started it', () => {
+  // 17.11: run #61651 Gyor -> Iasi on a truck that was near Lyon took the map to France.
+  const far = { ...truck([stop('#61651', 'pickup', 17.65, 47.69), stop('#61651', 'delivery', 27.6, 47.16)]), lat: 45.76, lon: 4.84 };
+  assert.deepEqual(focusPoints(far, '#61651'), [[17.65, 47.69], [27.6, 47.16]]);
+  // Once it is loaded and on its way, where it is belongs in the frame.
+  const onIt = { ...truck([stop('#61651', 'pickup', 17.65, 47.69, true), stop('#61651', 'delivery', 27.6, 47.16)]), lat: 47, lon: 22 };
+  assert.deepEqual(focusPoints(onIt, '#61651')[0], [22, 47]);
+  // No run: the truck and everything still ahead.
+  assert.equal(focusPoints(far, null).length, 3);
 });

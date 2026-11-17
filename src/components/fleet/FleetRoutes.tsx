@@ -1,34 +1,81 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Layer, Marker, Source } from 'react-map-gl/maplibre';
-import { fleetGeo } from '@/lib/fleetRoutes';
+import { fleetGeo, legKey, legsAhead } from '@/lib/fleetRoutes';
+import { calculateRoute } from '@/lib/routing';
 import { useFleetStore } from '@/store/fleetStore';
 import { useThemeStore } from '@/store/themeStore';
 
 /**
- * The fleet's routes (lib/fleetRoutes): what each truck drove this week, and
- * for the selected truck what is still ahead, with its pickups and
- * deliveries marked. Under the truck tags, which are HTML markers and always
- * sit on top.
+ * The fleet's routes (lib/fleetRoutes), under the truck tags (HTML markers,
+ * always on top).
  *
- * Colours: the selected truck's driven line is orange (the TMS's brand, the
- * same as its selected tag); the others are grey and faint, there for "where
- * has everyone been" without competing. Ahead, loaded legs are green and
- * empty legs grey - the TMS's fleet map uses the same two.
+ *   driven    the selected truck's week, solid orange - the TMS's brand, the
+ *             same as its selected tag. Other trucks' weeks are faint grey,
+ *             there for "where has everyone been", and almost gone once one
+ *             truck is picked.
+ *   ahead     dashed, along the roads: green where it drives loaded, grey
+ *             where it drives empty (the TMS's map colours). The picked run's
+ *             legs are thicker.
+ *   stops     numbered in the order they will be driven, pickups green with an
+ *             up-arrow, deliveries dark with a down-arrow, done ones faded.
+ *
+ * Roads come from OSRM (lib/routing, the free public server), one call per leg
+ * and only for the selected truck, cached for the session: a dozen trucks'
+ * legs on every two-minute refresh would be the rate limit's problem. Until a
+ * leg's road arrives - or if the server does not answer - it is drawn
+ * straight, which is still the right order of the work.
  */
 const ORANGE = '#ee7a1d';
 const LOADED = '#2f8f5b';
 const EMPTY = '#948b81';
+
+const roadCache = new Map<string, [number, number][]>();
+const pending = new Set<string>();
 
 export function FleetRoutes() {
   const trucks = useFleetStore((s) => s.trucks);
   const selected = useFleetStore((s) => s.selected);
   const run = useFleetStore((s) => s.run);
   const dark = useThemeStore((s) => s.dark);
-  const geo = useMemo(() => fleetGeo(trucks, selected, run), [trucks, selected, run]);
-  const picked = selected ? trucks.find((t) => t.key === selected) : null;
+  const picked = selected ? trucks.find((t) => t.key === selected) ?? null : null;
+  // Bumped when a road arrives, so the lines are rebuilt with it.
+  const [roadsVersion, setRoadsVersion] = useState(0);
+
+  const legs = useMemo(() => (picked ? legsAhead(picked) : []), [picked]);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      for (const leg of legs) {
+        const k = legKey(leg.from, leg.to);
+        if (roadCache.has(k) || pending.has(k)) continue;
+        pending.add(k);
+        const r = await calculateRoute([leg.from, [leg.to.lon, leg.to.lat]]).catch(() => null);
+        pending.delete(k);
+        // A failed leg is remembered as straight, so it is not asked again on every refresh.
+        roadCache.set(k, r?.coordinates ?? []);
+        if (live) setRoadsVersion((v) => v + 1);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [legs]);
+
+  const geo = useMemo(
+    () => fleetGeo(trucks, selected, run, roadCache),
+    // roadsVersion: the cache is a module Map, so a new road changes nothing React can see.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trucks, selected, run, roadsVersion],
+  );
+
+  // Stop numbers in driving order: done stops first (they were driven first), then the ones ahead.
+  const numbered = useMemo(() => (picked ? picked.stops.map((s, i) => ({ s, n: i + 1 })) : []), [picked]);
+
   if (!trucks.length) return null;
+  const casing = dark ? '#131110' : '#ffffff';
 
   return (
     <>
@@ -38,63 +85,70 @@ export function FleetRoutes() {
           type="line"
           filter={['==', ['get', 'sel'], true]}
           layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{ 'line-color': dark ? '#111111' : '#ffffff', 'line-width': 7, 'line-opacity': 0.9 }}
+          paint={{ 'line-color': casing, 'line-width': 8, 'line-opacity': 0.9 }}
         />
         <Layer
           id="fleet-trail"
           type="line"
           layout={{ 'line-cap': 'round', 'line-join': 'round' }}
           paint={{
-            'line-color': ['case', ['get', 'sel'], ORANGE, dark ? '#9ca3af' : '#6b7280'],
-            'line-width': ['case', ['get', 'sel'], 4, 2],
-            'line-opacity': ['case', ['get', 'sel'], 1, selected ? 0.2 : 0.45],
+            'line-color': ['case', ['get', 'sel'], ORANGE, dark ? '#a39a90' : '#766d64'],
+            'line-width': ['case', ['get', 'sel'], 4.5, 2],
+            'line-opacity': ['case', ['get', 'sel'], 1, selected ? 0.12 : 0.45],
           }}
         />
       </Source>
       <Source id="fleet-plans" type="geojson" data={geo.plans}>
         <Layer
+          id="fleet-plan-casing"
+          type="line"
+          filter={['==', ['get', 'sel'], true]}
+          layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+          paint={{ 'line-color': casing, 'line-width': ['case', ['get', 'run'], 9, 7], 'line-opacity': 0.85 }}
+        />
+        <Layer
           id="fleet-plan"
           type="line"
-          layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+          layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
           paint={{
             'line-color': ['case', ['get', 'loaded'], LOADED, EMPTY],
             'line-width': ['case', ['get', 'run'], 5, ['get', 'sel'], 3.5, 2],
-            'line-dasharray': [2, 1.5],
-            'line-opacity': ['case', ['get', 'sel'], 0.95, 0.5],
+            'line-dasharray': [2, 1.4],
+            'line-opacity': ['case', ['get', 'sel'], ['case', ['get', 'run'], 1, run ? 0.55 : 1], 0.5],
           }}
         />
       </Source>
-      {picked
-        ? picked.stops.map((s) => {
-            const inRun = run != null && s.order === run;
-            return (
-              <Marker key={`fleet-stop-${s.id}`} longitude={s.lon} latitude={s.lat} anchor="bottom" style={{ zIndex: inRun ? 2 : 1 }}>
-                <div
-                  className={`pointer-events-none flex flex-col items-center ${s.done ? 'opacity-55' : ''}`}
-                  title={`${s.kind === 'pickup' ? 'Încărcare' : 'Descărcare'} ${s.order} · ${s.code}${s.day ? ` · ${s.day}` : ''}${s.done ? ' · făcut' : ''}`}
-                >
-                  <div
-                    className={`flex items-center gap-1 whitespace-nowrap rounded-full border bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-900 shadow-md dark:bg-gray-900 dark:text-gray-100 ${
-                      inRun ? 'border-orange-500 ring-2 ring-orange-500/40' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                      {s.kind === 'pickup' ? (
-                        <path d="M5 1 L9.5 9 L0.5 9 Z" fill={LOADED} />
-                      ) : (
-                        <path d="M0.5 1 L9.5 1 L5 9 Z" fill={dark ? '#e5e7eb' : '#1f2937'} />
-                      )}
-                    </svg>
-                    <span className="font-mono">{s.code}</span>
-                    {s.day ? <span className="font-normal text-gray-500 dark:text-gray-400">{s.day}</span> : null}
-                  </div>
-                  <div className="h-2 w-px bg-gray-400" aria-hidden="true" />
-                  <div className="h-2 w-2 rounded-full border-2 border-white bg-gray-700 shadow dark:border-gray-900" aria-hidden="true" />
-                </div>
-              </Marker>
-            );
-          })
-        : null}
+      {numbered.map(({ s, n }) => {
+        const inRun = run != null && s.order === run;
+        const pickup = s.kind === 'pickup';
+        return (
+          <Marker key={`fleet-stop-${s.id}`} longitude={s.lon} latitude={s.lat} anchor="left" offset={[-13, 0]} style={{ zIndex: inRun ? 2 : 1 }}>
+            <div
+              className={`pointer-events-none flex items-center gap-1.5 ${s.done ? 'opacity-55' : ''}`}
+              title={`${n}. ${pickup ? 'Încărcare' : 'Descărcare'} ${s.order} · ${s.code}${s.day ? ` · ${s.day}` : ''}${s.done ? ' · făcut' : ''}`}
+            >
+              <span
+                className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border-2 border-white text-[12px] font-bold shadow-md dark:border-gray-900 ${
+                  pickup ? 'bg-green-600 text-white' : 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                } ${inRun ? 'ring-2 ring-orange-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-900' : ''}`}
+              >
+                {n}
+              </span>
+              <span
+                className={`flex items-center gap-1 whitespace-nowrap rounded-md border bg-white/95 px-1.5 py-0.5 text-[11px] font-semibold text-gray-900 shadow-sm dark:bg-gray-900/95 dark:text-gray-100 ${
+                  inRun ? 'border-orange-300 dark:border-orange-800' : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true">
+                  {pickup ? <path d="M5 1 L9.5 9 L0.5 9 Z" fill={LOADED} /> : <path d="M0.5 1 L9.5 1 L5 9 Z" fill="currentColor" />}
+                </svg>
+                <span className="font-mono">{s.code}</span>
+                {s.day ? <span className="font-normal text-gray-500 dark:text-gray-400">{s.day}</span> : null}
+              </span>
+            </div>
+          </Marker>
+        );
+      })}
     </>
   );
 }

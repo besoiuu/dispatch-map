@@ -236,7 +236,7 @@ function StopList({ truck, run }: { truck: FleetTruck; run: string | null }) {
   const ahead = new Map(legsAhead(truck).map((l) => [l.to.id, l.loaded]));
   return (
     <ol aria-label="Traseul săptămânii" className="mx-4 mb-3 space-y-px rounded-lg border border-gray-200 bg-white py-1 dark:border-gray-700 dark:bg-gray-900">
-      {truck.stops.map((s) => {
+      {truck.stops.map((s, i) => {
         const loaded = ahead.get(s.id);
         const inRun = run != null && s.order === run;
         return (
@@ -246,12 +246,20 @@ function StopList({ truck, run }: { truck: FleetTruck; run: string | null }) {
               inRun ? 'bg-orange-50 dark:bg-orange-500/10' : ''
             }`}
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" className="shrink-0">
-              {s.kind === 'pickup' ? <path d="M5 1 L9.5 9 L0.5 9 Z" fill="#2f8f5b" /> : <path d="M0.5 1 L9.5 1 L5 9 Z" fill="currentColor" />}
-            </svg>
+            {/* The same number as the stop's pin on the map. */}
+            <span
+              aria-hidden="true"
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                s.kind === 'pickup' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+              }`}
+            >
+              {i + 1}
+            </span>
             <span className="sr-only">{s.kind === 'pickup' ? 'Încărcare' : 'Descărcare'}</span>
-            <span className="font-mono font-semibold">{s.code}</span>
-            <span className="truncate text-gray-500 dark:text-gray-400">
+            <span className="min-w-0 truncate font-mono font-semibold" title={s.code}>
+              {s.code}
+            </span>
+            <span className="shrink-0 text-gray-500 dark:text-gray-400">
               {s.order}
               {s.day ? ` · ${s.day}` : ''}
             </span>

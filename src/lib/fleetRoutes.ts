@@ -5,10 +5,10 @@
  *
  *   trail - where it DROVE this week, its GPS track. Solid.
  *   plan  - where it still has to GO: from where it is now through the stops
- *           the GPS has not seen done yet, in the order of the runs. Dashed,
- *           and straight from stop to stop: it is the order of the work, not
- *           a road route (that needs a routing call per truck; see CLAUDE.md
- *           on OSRM).
+ *           the GPS has not seen done yet, in the order of the runs. Dashed.
+ *           Along the roads for the selected truck once OSRM has answered
+ *           (`roads`, one call per leg, cached by FleetRoutes); straight from
+ *           stop to stop until then, and for every truck not selected.
  *
  * Each leg of the plan is marked LOADED or EMPTY. A truck is loaded between
  * a pickup and its delivery; at the start it already carries every order it
@@ -24,6 +24,15 @@ export type FleetGeo = {
   trails: GeoJSON.FeatureCollection<GeoJSON.LineString>;
   plans: GeoJSON.FeatureCollection<GeoJSON.LineString>;
 };
+
+/**
+ * Which leg this is, for the road cache. The start is rounded to ~1 km: the
+ * first leg starts at the truck, which moves a little on every refresh, and a
+ * new routing call every two minutes for the same leg would be waste.
+ */
+export function legKey(from: [number, number], to: { lon: number; lat: number }): string {
+  return `${from[0].toFixed(2)},${from[1].toFixed(2)}>${to.lon.toFixed(4)},${to.lat.toFixed(4)}`;
+}
 
 /** The legs still ahead of one truck, with whether each is driven loaded. */
 export function legsAhead(t: Pick<FleetTruck, 'lat' | 'lon' | 'stops'>): { from: [number, number]; to: FleetStop; loaded: boolean }[] {
@@ -48,7 +57,12 @@ export function legsAhead(t: Pick<FleetTruck, 'lat' | 'lon' | 'stops'>): { from:
  * when none is selected. Ten dashed plans crossing Europe at once are noise
  * once a dispatcher is looking at one truck.
  */
-export function fleetGeo(trucks: readonly FleetTruck[], selected: string | null, run: string | null): FleetGeo {
+export function fleetGeo(
+  trucks: readonly FleetTruck[],
+  selected: string | null,
+  run: string | null,
+  roads: ReadonlyMap<string, [number, number][]> = new Map(),
+): FleetGeo {
   const trails: Line[] = [];
   const plans: Line[] = [];
   for (const t of trucks) {
@@ -60,12 +74,31 @@ export function fleetGeo(trucks: readonly FleetTruck[], selected: string | null,
     }
     if (selected && !sel) continue;
     for (const leg of legsAhead(t)) {
+      const road = sel ? roads.get(legKey(leg.from, leg.to)) : undefined;
       plans.push({
         type: 'Feature',
         properties: { key: t.key, sel, loaded: leg.loaded, run: run != null && leg.to.order === run },
-        geometry: { type: 'LineString', coordinates: [leg.from, [leg.to.lon, leg.to.lat]] },
+        geometry: { type: 'LineString', coordinates: road && road.length >= 2 ? road : [leg.from, [leg.to.lon, leg.to.lat]] },
       });
     }
   }
   return { trails: { type: 'FeatureCollection', features: trails }, plans: { type: 'FeatureCollection', features: plans } };
+}
+
+/**
+ * Where to frame the map for a truck. With a run picked: that run's two ends,
+ * plus the truck only while it is ON the run (loaded, not yet delivered) -
+ * a truck three countries away from a run it has not started would pull the
+ * frame off the run the dispatcher asked to see. Without a run: the truck and
+ * every stop still ahead.
+ */
+export function focusPoints(t: Pick<FleetTruck, 'lat' | 'lon' | 'stops'>, run: string | null): [number, number][] {
+  const here: [number, number] = [t.lon, t.lat];
+  if (!run) return [here, ...t.stops.filter((s) => !s.done).map((s) => [s.lon, s.lat] as [number, number])];
+  const ends = t.stops.filter((s) => s.order === run);
+  if (!ends.length) return [here];
+  const pickedUp = ends.some((s) => s.kind === 'pickup' && s.done);
+  const delivered = ends.some((s) => s.kind === 'delivery' && s.done);
+  const pts = ends.map((s) => [s.lon, s.lat] as [number, number]);
+  return pickedUp && !delivered ? [here, ...pts] : pts;
 }

@@ -80,10 +80,14 @@ export function MapShell() {
     }
   }, []);
 
-  // The base map: a link's `base=harta|plz` wins over what this browser last chose.
+  // The base map: a link's `base=harta|plz` wins over what this browser last
+  // chose. With neither: the road map inside the TMS's Dispecerat, where the
+  // fleet's lines are the point and read far better on roads than on coloured
+  // regions; the postal regions on its own, as it always opened.
   useEffect(() => {
     const fromLink = new URLSearchParams(window.location.hash.slice(1)).get('base');
-    const base = fromLink === 'harta' || fromLink === 'plz' ? fromLink : storedBase();
+    const base =
+      fromLink === 'harta' || fromLink === 'plz' ? fromLink : storedBase() ?? (window.parent !== window ? 'harta' : 'plz');
     if (base !== useMapStore.getState().base) useMapStore.setState({ base });
   }, []);
 

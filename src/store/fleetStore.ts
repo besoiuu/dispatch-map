@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { FleetTruck } from '@/lib/fleetBridge';
+import { focusPoints } from '@/lib/fleetRoutes';
 
 /**
  * The fleet (lib/fleetBridge), from one of two sources:
@@ -85,10 +86,9 @@ export function focusTruck(key: string, opts: { run?: string | null; fromTms?: b
       /* the TMS window went away */
     }
   }
-  const ahead = run ? t.stops.filter((s) => s.order === run) : t.stops.filter((s) => !s.done);
-  const pts: [number, number][] = [[t.lon, t.lat], ...ahead.map((s) => [s.lon, s.lat] as [number, number])];
+  const pts = focusPoints(t, run);
   if (pts.length === 1) {
-    window.dispatchEvent(new CustomEvent('map:flyto', { detail: { center: [t.lon, t.lat], zoom: 9 } }));
+    window.dispatchEvent(new CustomEvent('map:flyto', { detail: { center: pts[0], zoom: 9 } }));
     return;
   }
   const lons = pts.map((p) => p[0]);
@@ -100,7 +100,8 @@ export function focusTruck(key: string, opts: { run?: string | null; fromTms?: b
     new CustomEvent('map:flyto', {
       detail: {
         bbox: [Math.min(...lons) - pad, Math.min(...lats) - pad, Math.max(...lons) + pad, Math.max(...lats) + pad],
-        padding: { top: 60, bottom: 60, right: 60, left: wide ? 360 : 40 },
+        // Top clears the zoom/base bar; right leaves room for the stop labels, which sit right of their pins.
+        padding: { top: 90, bottom: 50, right: wide ? 190 : 40, left: wide ? 360 : 40 },
       },
     }),
   );

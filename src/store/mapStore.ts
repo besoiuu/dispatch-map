@@ -18,11 +18,12 @@ const BASE_KEY = 'dispatch-base-map';
  * Read while the store was created, it differed between the server render and
  * the browser, and the switch showed the other view pressed.
  */
-export function storedBase(): BaseMap {
+export function storedBase(): BaseMap | null {
   try {
-    return window.localStorage.getItem(BASE_KEY) === 'harta' ? 'harta' : 'plz';
+    const v = window.localStorage.getItem(BASE_KEY);
+    return v === 'harta' || v === 'plz' ? v : null;
   } catch {
-    return 'plz';
+    return null;
   }
 }
 
