@@ -23,9 +23,10 @@ import { useThemeStore } from '@/store/themeStore';
  *
  * Roads come from OSRM (lib/routing, the free public server), one call per leg
  * and only for the selected truck, cached for the session: a dozen trucks'
- * legs on every two-minute refresh would be the rate limit's problem. Until a
- * leg's road arrives - or if the server does not answer - it is drawn
- * straight, which is still the right order of the work.
+ * legs on every two-minute refresh would be the rate limit's problem. A leg
+ * whose road has not arrived - or that the server could not route - is not
+ * drawn at all: never a straight line standing in for a road. Its stops are
+ * still pinned and numbered, so the order of the work is never lost.
  */
 const ORANGE = '#ee7a1d';
 const LOADED = '#2f8f5b';

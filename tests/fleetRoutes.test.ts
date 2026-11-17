@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { parseFleetMessage, type FleetStop, type FleetTruck } from '@/lib/fleetBridge';
-import { fleetGeo, focusPoints, legsAhead } from '@/lib/fleetRoutes';
+import { fleetGeo, focusPoints, legKey, legsAhead } from '@/lib/fleetRoutes';
 
 const stop = (order: string, kind: 'pickup' | 'delivery', lon: number, lat: number, done = false): FleetStop => ({
   id: `${order.slice(1)}:${kind}`,
@@ -63,13 +63,18 @@ test('a delivered order is no longer on board', () => {
   );
 });
 
-test('with a truck selected, only its plan is drawn; every trail stays', () => {
+test('a plan is drawn only along a known road, and only for the selected truck', () => {
   const a = truck([stop('#1', 'pickup', 6.8, 51.2)], [[5, 49], [5.5, 49.5]]);
   const b = { ...a, key: 'B', stops: [stop('#9', 'pickup', 8, 52)] };
-  const all = fleetGeo([a, b], null, null);
-  assert.equal(all.plans.features.length, 2);
-  const one = fleetGeo([a, b], 'B', '#9');
+  const road: [number, number][] = [[6, 50], [7, 51], [8, 52]];
+  const roads = new Map([[legKey([6, 50], { lon: 8, lat: 52 }), road]]);
+  // Nobody selected: no plans at all, only trails.
+  assert.equal(fleetGeo([a, b], null, null, roads).plans.features.length, 0);
+  // Selected, but its road not known yet: still nothing - never a straight line (17.11).
+  assert.equal(fleetGeo([a, b], 'B', '#9').plans.features.length, 0);
+  const one = fleetGeo([a, b], 'B', '#9', roads);
   assert.deepEqual(one.plans.features.map((f) => f.properties?.key), ['B']);
+  assert.deepEqual(one.plans.features[0].geometry.coordinates, road);
   assert.equal(one.plans.features[0].properties?.run, true);
   assert.equal(one.trails.features.length, 2);
   // The trail ends at the truck's position, where its tag is.

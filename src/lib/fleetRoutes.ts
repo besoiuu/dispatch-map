@@ -5,10 +5,12 @@
  *
  *   trail - where it DROVE this week, its GPS track. Solid.
  *   plan  - where it still has to GO: from where it is now through the stops
- *           the GPS has not seen done yet, in the order of the runs. Dashed.
- *           Along the roads for the selected truck once OSRM has answered
- *           (`roads`, one call per leg, cached by FleetRoutes); straight from
- *           stop to stop until then, and for every truck not selected.
+ *           the GPS has not seen done yet, in the order of the runs. Dashed,
+ *           along the roads (`roads`, one OSRM call per leg, cached by
+ *           FleetRoutes), and ONLY along the roads: a leg whose road is not
+ *           known yet is not drawn. A straight line from Gyor to Iasi says
+ *           nothing about the drive (Patrick, 17.11), so it is never a
+ *           placeholder. Only the selected truck has a plan on the map.
  *
  * Each leg of the plan is marked LOADED or EMPTY. A truck is loaded between
  * a pickup and its delivery; at the start it already carries every order it
@@ -53,9 +55,8 @@ export function legsAhead(t: Pick<FleetTruck, 'lat' | 'lon' | 'stops'>): { from:
 }
 
 /**
- * Every truck's trail; the plan of the selected truck only, or of all of them
- * when none is selected. Ten dashed plans crossing Europe at once are noise
- * once a dispatcher is looking at one truck.
+ * Every truck's trail; the plan of the selected truck only, leg by leg as its
+ * roads arrive.
  */
 export function fleetGeo(
   trucks: readonly FleetTruck[],
@@ -72,13 +73,14 @@ export function fleetGeo(
     if (trail.length >= 2) {
       trails.push({ type: 'Feature', properties: { key: t.key, sel }, geometry: { type: 'LineString', coordinates: trail } });
     }
-    if (selected && !sel) continue;
+    if (!sel) continue;
     for (const leg of legsAhead(t)) {
-      const road = sel ? roads.get(legKey(leg.from, leg.to)) : undefined;
+      const road = roads.get(legKey(leg.from, leg.to));
+      if (!road || road.length < 2) continue;
       plans.push({
         type: 'Feature',
         properties: { key: t.key, sel, loaded: leg.loaded, run: run != null && leg.to.order === run },
-        geometry: { type: 'LineString', coordinates: road && road.length >= 2 ? road : [leg.from, [leg.to.lon, leg.to.lat]] },
+        geometry: { type: 'LineString', coordinates: road },
       });
     }
   }
