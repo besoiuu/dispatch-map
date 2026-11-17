@@ -15,7 +15,9 @@ import { fitFleet } from './FleetBridge';
  * the base, driver names as last told - no runs); or there is no key, and
  * the panel is a single button that says how to connect.
  */
-const TMS_PLANNER = 'https://remro.herokuapp.com/transport2/transports?lista=flota&vedere=saptamana';
+const PLANNER_PATH = '/transport2/transports?lista=flota&vedere=saptamana';
+/** The planner on the TMS that handed us the key, or the official address when there is none. */
+const plannerUrl = (api: string | null | undefined) => `${api || 'https://app.remro.ro'}${PLANNER_PATH}`;
 export function FleetPanel() {
   const source = useFleetStore((s) => s.source);
   const connected = source !== null;
@@ -63,7 +65,7 @@ export function FleetPanel() {
               Deschide <span className="font-semibold">Harta flotei</span> din planificarea flotei în TMS. După aceea camioanele apar aici și când deschizi harta singură, 30 de zile, pe acest calculator.
             </p>
             <a
-              href={TMS_PLANNER}
+              href={plannerUrl(link?.api)}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"

@@ -58,6 +58,9 @@ export type FleetMessage =
 
 /** Where the TMS is served. More can be added with NEXT_PUBLIC_FLEET_ORIGINS, comma-separated. */
 const DEFAULT_ORIGINS = [
+  // The official address since 12.11.2026. Missing from this list, the map
+  // opened from it silently showed no fleet: the messages were dropped as foreign.
+  'https://app.remro.ro',
   'https://remro.herokuapp.com',
   'https://remro-frontend.robert-suselea.workers.dev',
   'http://localhost:3000',

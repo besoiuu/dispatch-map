@@ -22,6 +22,7 @@ const truck = {
 
 test('only the TMS origins are accepted, plus any configured', () => {
   assert.equal(allowedFleetOrigin('https://remro.herokuapp.com'), true);
+  assert.equal(allowedFleetOrigin('https://app.remro.ro'), true);
   assert.equal(allowedFleetOrigin('https://evil.example'), false);
   // A trailing slash in the setting is the commonest way to write it.
   assert.ok(fleetOrigins('https://tms.remro.ro/, ').includes('https://tms.remro.ro'));
